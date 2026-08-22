@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Deposit Funds • {{ BRAND_NAME }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Paystack -->
+  <script src="https://js.paystack.co/v1/inline.js"></script>
+  <link rel="icon" type="image/png" href="{{ BRAND_LOGO_URL }}">
+
+  <!-- Bootstrap & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+
+  <style>
+    :root{ --focus:var(--cd-primary); }
+    body {
+      min-height: 100dvh;
+      background:
+        radial-gradient(1200px 800px at 80% -10%, var(--cd-primary-15), transparent 60%),
+        linear-gradient(180deg, var(--cd-bg) 0%, var(--cd-bg) 100%);
+    }
+    .page-wrap { padding: 1.25rem; }
+    @media (min-width: 992px){ .page-wrap { padding: 2rem 2rem 3rem; } }
+    .page-header { display:flex; align-items:center; justify-content:center; gap:.6rem; margin-bottom:1rem; text-align:center; }
+    .page-header img{ width:42px; height:42px; border-radius:10px; object-fit:cover; border:2px solid var(--cd-primary); background:var(--cd-card); }
+    .page-header .title{ font-weight:800; letter-spacing:.2px; color:var(--cd-deep); }
+    .page-sub{ color:var(--cd-muted); }
+    .deposit-card{
+      background:var(--cd-card); border:1px solid var(--cd-border); border-radius:16px;
+      box-shadow:0 10px 30px rgb(var(--cd-deep-rgb) / 0.08); max-width:620px; margin-inline:auto;
+      animation: slideIn .45s ease both;
+    }
+    @keyframes slideIn{ from{opacity:0; transform: translateY(10px);} to{opacity:1; transform:none;} }
+    .amount-chip{
+      border-radius:999px; border:1px solid var(--cd-border); padding:.35rem .8rem;
+      background:var(--cd-primary-10); color:var(--cd-primary); cursor:pointer; transition:all .15s ease; user-select:none;
+      display:inline-flex; align-items:center; gap:.35rem;
+    }
+    .amount-chip:hover{ background:var(--cd-primary-10); transform: translateY(-1px); }
+    .amount-chip.active{
+      background:var(--cd-primary); border-color:var(--cd-primary); color:var(--cd-card);
+      box-shadow:0 10px 22px rgb(var(--cd-primary-rgb) / 0.22);
+    }
+    .form-label{ font-weight:600; color:var(--cd-deep); }
+    .form-control{ height:48px; border-radius:12px; }
+    .form-text{ color:var(--cd-muted); }
+    .btn-primary{ background:var(--cd-primary); border-color:var(--cd-primary); border-radius:12px; }
+    .btn-primary:hover{ filter:brightness(.96); }
+    .btn-icon{ display:inline-flex; align-items:center; gap:.5rem; }
+    .breakdown { background:var(--cd-bg); border:1px dashed var(--cd-border); border-radius:12px; padding:12px 14px; }
+    .breakdown .row{ --bs-gutter-x: 0.75rem; }
+    .toast-container{ position: fixed; top: 1rem; right: 1rem; z-index: 1080; }
+  </style>
+</head>
+<body>
+  {% include 'customer_sidebar.html' %}
+
+  <div class="page-wrap">
+    <!-- Header -->
+    <div class="page-header">
+      <img src="{{ BRAND_LOGO_URL }}" alt="{{ BRAND_NAME }} Logo">
+      <div>
+        <div class="title h4 mb-0">Deposit Funds</div>
+        <div class="page-sub small">Top up your wallet securely via Paystack</div>
+      </div>
+    </div>
+
+    <!-- Card -->
+    <div class="deposit-card p-4 p-md-5">
+      <form id="depositForm" onsubmit="return false">
+        <div class="mb-3">
+          <label for="amount" class="form-label">Amount to Credit (GHS)</label>
+          <input type="number" inputmode="decimal" step="0.01" min="10" id="amount" class="form-control"
+                 placeholder="e.g. 100.00" autocomplete="off" required>
+
+          <div class="form-text mt-2">
+            Enter the <strong>amount we will credit</strong> to your wallet. A 0.5% processing fee applies.
+          </div>
+
+          <div class="form-text mt-2">
+            Quick amounts:
+            <span class="amount-chip" role="button" tabindex="0" data-val="20"><i class="bi bi-lightning-charge"></i> ₵20</span>
+            <span class="amount-chip" role="button" tabindex="0" data-val="50"><i class="bi bi-lightning-charge"></i> ₵50</span>
+            <span class="amount-chip" role="button" tabindex="0" data-val="100"><i class="bi bi-lightning-charge"></i> ₵100</span>
+            <span class="amount-chip" role="button" tabindex="0" data-val="200"><i class="bi bi-lightning-charge"></i> ₵200</span>
+          </div>
+        </div>
+
+        <!-- Live breakdown -->
+        <div class="breakdown mb-3" id="feeBox" style="display:none;">
+          <div class="row">
+            <div class="col-7">We will credit</div>
+            <div class="col-5 text-end"><strong id="netOut">₵0.00</strong></div>
+          </div>
+          <div class="row">
+            <div class="col-7">Processing fee (<span id="feeRateTxt">0.5%</span>)</div>
+            <div class="col-5 text-end text-muted" id="feeOut">₵0.00</div>
+          </div>
+          <div class="row">
+            <div class="col-7">You’ll pay</div>
+            <div class="col-5 text-end"><strong id="grossOut">₵0.00</strong></div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Payment Method</label>
+          <div class="d-flex align-items-center gap-2 text-muted">
+            <i class="bi bi-credit-card-2-front"></i> Paystack (Cards • MoMo)
+          </div>
+        </div>
+
+        <div class="d-grid">
+          <button id="payBtn" class="btn btn-primary btn-lg btn-icon" type="button">
+            <span id="payBtnText">Pay Now</span>
+            <span class="spinner-border spinner-border-sm ms-1 d-none" role="status" aria-hidden="true"></span>
+          </button>
+        </div>
+
+        <div class="small text-muted mt-3">
+          Example: to credit <strong>₵100.00</strong>, you’ll pay <strong>₵100.50</strong>.
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toasts -->
+  <div class="toast-container">
+    <div id="toast" class="toast align-items-center text-bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body" id="toastMsg">An error occurred.</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    (function(){
+      const email = "{{ (email or '')|e }}";
+
+      // ✅ comes from backend hardcoded key (deposit.py)
+      const PAYSTACK_PK = "{{ (paystack_pk or '')|e }}";
+
+      const FEE_RATE = Number("{{ '%.6f'|format(deposit_fee_rate|default(0.005)) }}"); // 0.5%
+      const MIN_DEPOSIT = Number("{{ '%.2f'|format(min_deposit|default(10)) }}");
+
+      const payBtn   = document.getElementById('payBtn');
+      const btnText  = document.getElementById('payBtnText');
+      const spinner  = payBtn.querySelector('.spinner-border');
+      const amountEl = document.getElementById('amount');
+
+      const feeBox   = document.getElementById('feeBox');
+      const netOut   = document.getElementById('netOut');
+      const feeOut   = document.getElementById('feeOut');
+      const grossOut = document.getElementById('grossOut');
+      const feeRateTxt = document.getElementById('feeRateTxt');
+
+      feeRateTxt.textContent = `${(FEE_RATE*100).toFixed(1)}%`;
+
+      // Helpers
+      const fmt = n => `₵${Number(n || 0).toFixed(2)}`;
+      const roundPesewas = ghs => Math.round(Number(ghs) * 100);
+      const toGhs = pesewas => (pesewas/100).toFixed(2);
+
+      function compute(gNet){
+        const net_pes = roundPesewas(gNet);
+        const fee_pes = Math.round((gNet * FEE_RATE) * 100);
+        const gross_pes = net_pes + fee_pes;
+
+        return {
+          net_g: Number(toGhs(net_pes)),
+          fee_g: Number(toGhs(fee_pes)),
+          gross_g: Number(toGhs(gross_pes)),
+          gross_pes
+        };
+      }
+
+      function showError(msg){
+        const el = document.getElementById('toast');
+        document.getElementById('toastMsg').textContent = msg;
+        new bootstrap.Toast(el, { delay: 3500 }).show();
+      }
+
+      function setLoading(on){
+        payBtn.disabled = !!on;
+        spinner.classList.toggle('d-none', !on);
+      }
+
+      function updateBreakdown(){
+        const net = parseFloat((amountEl.value || '').replace(/,/g,''));
+        if (!isFinite(net) || net < MIN_DEPOSIT){
+          feeBox.style.display = 'none';
+          btnText.textContent = 'Pay Now';
+          return;
+        }
+        const { net_g, fee_g, gross_g } = compute(net);
+        netOut.textContent = fmt(net_g);
+        feeOut.textContent = fmt(fee_g);
+        grossOut.textContent = fmt(gross_g);
+        btnText.textContent = `Pay ${fmt(gross_g)}`;
+        feeBox.style.display = '';
+      }
+
+      amountEl.addEventListener('input', ()=>{
+        const v = parseFloat(amountEl.value);
+        amountEl.classList.toggle('is-invalid', !(isFinite(v) && v >= MIN_DEPOSIT));
+        updateBreakdown();
+        syncChipActive();
+      });
+
+      // ✅ FIX: quick amounts auto-fill + trigger breakdown
+      const chips = Array.from(document.querySelectorAll('.amount-chip'));
+      function setAmountFromChip(val){
+        const n = Number(val);
+        if(!isFinite(n) || n <= 0) return;
+        amountEl.value = n.toFixed(2);
+        amountEl.dispatchEvent(new Event('input', { bubbles: true }));
+        amountEl.focus();
+      }
+      function syncChipActive(){
+        const v = Number(amountEl.value || 0);
+        chips.forEach(c=>{
+          const cv = Number(c.getAttribute('data-val') || 0);
+          c.classList.toggle('active', cv && Math.abs(cv - v) < 0.01);
+        });
+      }
+      chips.forEach(chip=>{
+        const handler = () => setAmountFromChip(chip.getAttribute('data-val'));
+        chip.addEventListener('click', handler);
+        chip.addEventListener('keydown', (e)=>{
+          if(e.key === 'Enter' || e.key === ' '){
+            e.preventDefault();
+            handler();
+          }
+        });
+      });
+
+      payBtn.addEventListener('click', ()=>{
+        if (!email || email === 'None'){
+          showError('Your email is not set. Please log in again.');
+          return;
+        }
+        if (!PAYSTACK_PK){
+          showError('Payment is not configured. Please contact support.');
+          return;
+        }
+
+        const net = parseFloat((amountEl.value || '').replace(/,/g,''));
+        if (!isFinite(net) || net < MIN_DEPOSIT){
+          showError('Enter a valid amount (GHS ' + MIN_DEPOSIT.toFixed(2) + ' or more).');
+          amountEl.focus();
+          return;
+        }
+
+        const { net_g, gross_pes } = compute(net);
+
+        setLoading(true);
+
+        const handler = PaystackPop.setup({
+          key: PAYSTACK_PK,
+          email: email,
+          amount: gross_pes,
+          currency: "GHS",
+          metadata: {
+            net_amount_ghs: Number(net_g.toFixed(2)),                // EXACT wallet credit
+            fee_rate: Number(FEE_RATE.toFixed(6)),
+            gross_amount_ghs: Number((gross_pes/100).toFixed(2)),
+            custom_fields: [{ display_name:"Platform", variable_name:"platform", value:"{{ BRAND_NAME }} Web" }]
+          },
+          callback: function(response){
+            window.location.href = `/verify_transaction?reference=${encodeURIComponent(response.reference)}`;
+          },
+          onClose: function(){
+            setLoading(false);
+          }
+        });
+
+        try { handler.openIframe(); }
+        catch (e) { console.error(e); showError('Unable to open payment window. Please retry.'); setLoading(false); }
+      });
+
+      // Initial state
+      updateBreakdown();
+      syncChipActive();
+    })();
+  </script>
+</body>
+</html>

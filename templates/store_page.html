@@ -1,0 +1,2538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>{{ store.name }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+  {% set t = store.theme or {} %}
+  {% set layout = store.layout or 'grid-2' %}
+  <meta name="theme-color" content="{{ t.primary or 'var(--cd-primary)' }}"/>
+
+  {% if canonical_url %}
+    <link rel="canonical" href="{{ canonical_url }}">
+  {% endif %}
+
+  <meta name="description" content="{{ (store.hero.subtitle if store.hero else '') or ('Shop bundles & services from ' ~ store.name ~ ' with instant checkout.') }}"/>
+
+  <link rel="icon" type="image/png"
+        href="{{ (store.logo_url or '') if (store.logo_url and store.logo_url|length>0) else 'https://via.placeholder.com/256?text=Store' }}">
+
+  <!-- Fonts & Bootstrap -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+
+  <style>
+    :root{
+      --primary: {{ t.primary or 'var(--cd-primary)' }};
+      --accent:  {{ t.accent  or 'var(--cd-primary)' }};
+      --bg:      {{ t.bg      or 'var(--cd-card)' }};
+      --text:    {{ t.text    or 'var(--cd-text)' }};
+
+      --ink:var(--cd-deep);
+      --muted:var(--cd-muted);
+      --card:var(--cd-card);
+
+      --ring: rgb(var(--cd-deep-rgb) / 0.10);
+      --ring2: rgb(var(--cd-deep-rgb) / 0.14);
+
+      --shadow: 0 18px 45px rgb(var(--cd-deep-rgb) / 0.08);
+      --shadow2: 0 28px 70px rgb(var(--cd-deep-rgb) / 0.14);
+
+      --glass: rgb(var(--cd-white-rgb) / 0.82);
+      --glass2: rgb(var(--cd-white-rgb) / 0.92);
+    }
+
+    html,body{ height:100%; }
+    body{
+      color:var(--text);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      -webkit-font-smoothing:antialiased;
+      background:
+        radial-gradient(circle at 14% 0, var(--cd-primary-10), transparent 45%),
+        radial-gradient(circle at 86% 10%, rgb(var(--cd-success-rgb) /.10), transparent 45%),
+        var(--bg);
+      background-color: var(--bg);
+      overflow-x:hidden;
+    }
+    .container-wide{ max-width:1180px; }
+
+    :focus-visible{
+      outline: 3px solid rgb(var(--cd-primary-rgb) / 0.35);
+      outline-offset: 2px;
+      border-radius: 12px;
+    }
+
+    .reveal{
+      opacity:0;
+      transform: translateY(10px);
+      transition: opacity .55s ease, transform .55s ease;
+    }
+    .reveal.in{ opacity:1; transform: translateY(0); }
+
+    .navbar{
+      background:rgb(var(--cd-white-rgb) / 0.88);
+      backdrop-filter:saturate(160%) blur(10px);
+      border-bottom:1px solid rgb(var(--cd-deep-rgb) / 0.08);
+      box-shadow:0 10px 22px rgb(var(--cd-deep-rgb) / 0.06);
+    }
+    .brand-wrap{
+      display:flex; align-items:center; gap:.75rem;
+      color:var(--ink); text-decoration:none;
+      min-width: 0;
+    }
+    .brand-logo{
+      width:44px; height:44px;
+      border-radius:16px;
+      border:1px solid rgb(var(--cd-deep-rgb) / 0.08);
+      object-fit:cover; display:block;
+      background:var(--cd-card);
+      box-shadow:0 10px 24px rgb(var(--cd-deep-rgb) / 0.08);
+      flex: 0 0 auto;
+    }
+    .brand-text{
+      color:var(--ink);
+      font-weight:900;
+      letter-spacing:.10em;
+      font-size:.88rem;
+      text-transform:uppercase;
+      line-height: 1.1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 56vw;
+    }
+    .brand-sub{ font-size:.78rem; color:var(--muted); line-height: 1.1; }
+    .nav-link{ color:var(--cd-muted) !important; font-weight:700; font-size:.9rem; }
+    .nav-link:hover{ color:var(--primary) !important; }
+    .promo-badges{ display:flex; flex-wrap:wrap; gap:.35rem; margin-top:.45rem; }
+    .promo-badge{
+      display:inline-flex; align-items:center;
+      font-size:.68rem; font-weight:800; letter-spacing:.03em; text-transform:uppercase;
+      padding:.28rem .52rem; border-radius:999px; border:1px solid transparent;
+    }
+    .promo-badge-new{ background:rgb(var(--cd-primary-rgb) / 0.10); color:var(--cd-primary); border-color:rgb(var(--cd-primary-rgb) / 0.22); }
+    .promo-badge-hot{ background:rgb(var(--cd-warning-rgb) / 0.14); color:var(--cd-warning); border-color:rgb(var(--cd-warning-rgb) / 0.26); }
+
+    .hero{
+      position:relative;
+      min-height:44vh;
+      display:flex;
+      align-items:center;
+      color:var(--ink);
+      overflow:hidden;
+      border-bottom:1px solid rgb(var(--cd-deep-rgb) / 0.08);
+    }
+    .hero-inner{
+      padding:2.7rem 1rem 2.7rem;
+      position:relative;
+      z-index:1;
+      max-width:1180px;
+      margin:0 auto;
+      animation:fadeInUpHero .55s ease-out;
+    }
+    .hero-pill{
+      display:inline-flex; align-items:center; gap:.5rem;
+      padding:.22rem .7rem;
+      border-radius:999px;
+      border:1px solid rgb(var(--cd-deep-rgb) / 0.10);
+      background:rgb(var(--cd-white-rgb) / 0.74);
+      font-size:.78rem;
+      color:var(--cd-muted);
+      margin-bottom:.9rem;
+      box-shadow:0 10px 22px rgb(var(--cd-deep-rgb) / 0.06);
+    }
+    .hero h1{ font-weight:950; letter-spacing:-.03em; font-size:2.15rem; margin-bottom:.4rem; }
+    .hero .lead{ max-width:700px; font-size:1.02rem; color:var(--cd-muted); }
+    .hero-cta{ margin-top:1.25rem; display:flex; flex-wrap:wrap; gap:.75rem; align-items:center; }
+    .btn-pill{ border-radius:999px; font-weight:900; padding:.72rem 1.5rem; font-size:.92rem; }
+    .btn-darkish{
+      background:linear-gradient(135deg,var(--cd-deep),var(--cd-text));
+      border:1px solid rgb(var(--cd-deep-rgb) / 0.18);
+      color:var(--cd-bg);
+      box-shadow:0 18px 40px rgb(var(--cd-deep-rgb) / 0.18);
+      transition: transform .15s ease, filter .15s ease;
+    }
+    .btn-darkish:hover{ filter:brightness(.98); transform:translateY(-1px); color:var(--cd-card); }
+    .hero-status{ font-size:.86rem; color:var(--muted); display:flex; align-items:center; gap:.5rem; }
+    .hero-status-dot{
+      width:9px;height:9px;border-radius:999px;
+      background:linear-gradient(135deg,var(--cd-success),var(--cd-success));
+      box-shadow:0 0 0 5px rgb(var(--cd-success-rgb) /.18);
+    }
+    .hero-overlay{
+      position:absolute; inset:0; pointer-events:none;
+      background:
+        radial-gradient(circle at 15% 0, var(--cd-primary-15), transparent 60%),
+        radial-gradient(circle at 90% 20%, rgb(var(--cd-success-rgb) /.14), transparent 55%);
+      opacity:.9;
+    }
+
+    .services-section{ padding:2.2rem 0 4.5rem; }
+    .section-title{ font-weight:950; letter-spacing:.16em; text-transform:uppercase; font-size:.86rem; color:var(--cd-muted); }
+    .section-sub{ font-size:.92rem; color:var(--muted); }
+
+    .tabs-wrap{ position:sticky; top:72px; z-index:900; margin-top:-18px; padding-top:18px; }
+    .tabs-card{
+      background:rgb(var(--cd-white-rgb) / 0.82);
+      backdrop-filter:saturate(160%) blur(10px);
+      border:1px solid rgb(var(--cd-deep-rgb) / 0.10);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      padding:.7rem;
+    }
+    .nav-pills .nav-link{
+      border-radius:999px !important;
+      font-weight:950;
+      font-size:.92rem;
+      padding:.65rem 1rem;
+      color:var(--cd-deep) !important;
+      background:transparent;
+      border:1px solid rgb(var(--cd-deep-rgb) / 0.12);
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .nav-pills .nav-link:hover{ transform: translateY(-1px); box-shadow:0 14px 30px rgb(var(--cd-deep-rgb) / 0.08); }
+    .nav-pills .nav-link.active{
+      background:linear-gradient(135deg, var(--primary), var(--cd-primary)) !important;
+      color:var(--cd-card) !important;
+      border-color: rgb(var(--cd-primary-rgb) / 0.28);
+      box-shadow:0 16px 34px rgb(var(--cd-primary-rgb) / 0.20);
+    }
+
+    .service-card{
+      background:var(--glass);
+      backdrop-filter:saturate(160%) blur(10px);
+      border:1px solid rgb(var(--cd-deep-rgb) / 0.10);
+      border-radius:18px;
+      overflow:hidden;
+      height:100%;
+      box-shadow:var(--shadow);
+      transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+      position:relative;
+    }
+    .service-card:hover{ transform:translateY(-2px); box-shadow:var(--shadow2); border-color:rgb(var(--cd-deep-rgb) / 0.14); }
+
+    .thumb{
+      position:relative;
+      width:100%;
+      background:
+        radial-gradient(circle at 20% 0, var(--cd-primary-10), transparent 55%),
+        radial-gradient(circle at 90% 20%, rgb(var(--cd-success-rgb) /.09), transparent 55%),
+        var(--cd-card);
+      border-bottom:1px solid rgb(var(--cd-deep-rgb) / 0.06);
+      overflow:hidden;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .thumb.thumb-service{ height:170px; }
+    .thumb.thumb-product{ aspect-ratio: 4 / 3; }
+    .thumb img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      object-position:center;
+      display:block;
+      padding:10px;
+      background: transparent;
+    }
+    .thumb::after{
+      content:"";
+      position:absolute; inset:0;
+      background:linear-gradient(180deg, rgb(var(--cd-white-rgb) /0) 30%, rgb(var(--cd-white-rgb) / 0.65) 100%);
+      pointer-events:none;
+      opacity:.9;
+    }
+
+    .service-body{
+      padding:14px 16px 16px;
+      display:flex;
+      flex-direction:column;
+      position:relative;
+      z-index:1;
+      min-height: 180px;
+    }
+    .service-title{ font-weight:900; color:var(--ink); font-size:1.05rem; margin-bottom:.12rem; }
+    .service-meta{ color:var(--muted); font-size:.82rem; }
+
+    .badge-soft{
+      background:var(--cd-success-10);
+      color:var(--cd-success);
+      border-radius:999px;
+      padding:.16rem .65rem;
+      font-size:.74rem;
+      border:1px solid rgb(var(--cd-success-rgb) /.22);
+      white-space:nowrap;
+      font-weight:900;
+    }
+    .badge-dangerish{
+      border-radius:999px;
+      font-size:.76rem;
+      font-weight:900;
+      padding:.18rem .65rem;
+      background:var(--cd-error-10);
+      border:1px solid rgb(var(--cd-error-rgb) / 0.24);
+      color:var(--cd-error);
+      display:inline-flex;
+      align-items:center;
+      gap:.35rem;
+      max-width: 100%;
+    }
+
+    .quick-form{
+      display:none;
+      background:rgb(var(--cd-white-rgb) / 0.92);
+      border:1px dashed rgb(var(--cd-deep-rgb) / 0.18);
+      border-radius:14px;
+      padding:12px;
+      margin-top:10px;
+      animation:fadeIn .18s ease-out;
+    }
+    .quick-form.show{ display:block; }
+    .quick-form .form-label{ font-size:.78rem; color:var(--muted); font-weight:800; }
+    .quick-form .form-control,
+    .quick-form .form-select{
+      border-radius:12px;
+      border:1px solid rgb(var(--cd-deep-rgb) / 0.14);
+      background:var(--cd-card);
+      color:var(--ink);
+      box-shadow:0 10px 18px rgb(var(--cd-deep-rgb) /.05);
+    }
+    .quick-form .form-control-lg,
+    .quick-form .form-select-lg{ font-size:1rem; padding:.78rem 1rem; }
+
+    .btn-primary{
+      background:linear-gradient(135deg, var(--primary), var(--cd-primary));
+      border:1px solid rgb(var(--cd-primary-rgb) / 0.28);
+      font-weight:950;
+      border-radius:999px;
+      font-size:.92rem;
+      box-shadow:0 16px 34px rgb(var(--cd-primary-rgb) / 0.22);
+      transition: transform .12s ease, filter .12s ease;
+    }
+    .btn-primary:hover{ filter:brightness(.98); transform:translateY(-1px); }
+    .btn-success{ border-radius:999px; font-weight:950; }
+    .btn-outline-danger,.btn-outline-secondary{ border-radius:999px; font-weight:900; }
+
+    .price-tag{ font-weight:950; font-size:1.05rem; color:var(--cd-deep); letter-spacing:-.01em; }
+    .muted-line{ color:var(--muted); font-size:.9rem; }
+
+    /* Layout-aware products grid */
+    .products-grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .products-grid .pcol{ grid-column: auto; }
+    .layout-grid-1 .products-grid{ grid-template-columns: 1fr; }
+    .layout-cards .products-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    @media (min-width: 992px){
+      .layout-cards .products-grid{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+
+    .reco-grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .reco-item{ grid-column: auto; }
+
+    /* keep services rail layout */
+    .services-layout{ display:grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 992px){
+      .services-layout{ grid-template-columns: 1fr 340px; align-items:start; }
+    }
+
+    /* small screens: reduce gap a bit so 2-up fits nicer */
+    @media (max-width: 420px){
+      .products-grid{ gap: 12px; }
+      .reco-grid{ gap: 10px; }
+      .service-body{ padding: 12px 12px 14px; }
+      .service-title{ font-size: 1rem; }
+      .thumb.thumb-service{ height: 150px; }
+    }
+
+    .rail{
+      background:var(--glass);
+      backdrop-filter:saturate(160%) blur(10px);
+      border:1px solid rgb(var(--cd-deep-rgb) / 0.10);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      position:sticky;
+      top: 96px;
+    }
+    .rail-head{
+      padding:14px 14px 10px;
+      border-bottom:1px solid rgb(var(--cd-deep-rgb) / 0.08);
+      background: rgb(var(--cd-white-rgb) / 0.65);
+    }
+    .rail-title{ font-weight:950; letter-spacing:.08em; text-transform:uppercase; font-size:.78rem; color:var(--cd-muted); margin:0; }
+    .rail-sub{ margin:4px 0 0; color:var(--muted); font-size:.86rem; }
+    .rail-body{ padding:12px; display:grid; gap:10px; }
+
+    .mini-card{
+      display:flex; gap:10px;
+      padding:10px;
+      border:1px solid rgb(var(--cd-deep-rgb) / 0.10);
+      border-radius:14px;
+      background: rgb(var(--cd-white-rgb) / 0.85);
+      box-shadow: 0 12px 26px rgb(var(--cd-deep-rgb) / 0.06);
+      transition: transform .12s ease, box-shadow .12s ease;
+      cursor: pointer;
+      text-decoration:none;
+      color: inherit;
+    }
+    .mini-card:hover{ transform: translateY(-1px); box-shadow: 0 18px 38px rgb(var(--cd-deep-rgb) / 0.10); }
+    .mini-img{
+      width:64px; height:52px;
+      border-radius:12px;
+      border:1px solid rgb(var(--cd-deep-rgb) / 0.10);
+      background:var(--cd-card);
+      overflow:hidden;
+      flex: 0 0 auto;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .mini-img img{ width:100%; height:100%; object-fit:contain; padding:6px; }
+    .mini-info{ min-width:0; }
+    .mini-name{
+      font-weight:900;
+      font-size:.92rem;
+      margin:0;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      color: var(--ink);
+    }
+    .mini-price{ font-weight:950; font-size:.9rem; color:var(--cd-deep); margin-top:2px; }
+    .mini-note{ font-size:.78rem; color:var(--muted); margin-top:2px; }
+
+    .fab-cart{
+      position:fixed;
+      right:18px; bottom:18px;
+      width:60px; height:60px;
+      border-radius:50%;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      background:linear-gradient(135deg, var(--primary), var(--cd-primary));
+      border:none;
+      box-shadow:0 20px 48px rgb(var(--cd-deep-rgb) /.20);
+      cursor:pointer;
+      transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
+      z-index:1100;
+      color:var(--cd-card);
+    }
+    .fab-cart:hover{ transform:translateY(-2px); box-shadow:0 26px 56px rgb(var(--cd-deep-rgb) /.26); filter:brightness(.98); }
+    .fab-cart i{ font-size:1.45rem; }
+    .fab-cart .badge{
+      position:absolute;
+      top:-6px; right:-6px;
+      background:var(--cd-error);
+      color:var(--cd-card);
+      font-weight:950;
+      border-radius:999px;
+      padding:.32rem .58rem;
+      font-size:.74rem;
+      box-shadow:0 6px 16px rgb(var(--cd-error-rgb) / 0.45);
+      border:2px solid rgb(var(--cd-white-rgb) / 0.85);
+    }
+    .fab-cart.hide{ display:none !important; }
+
+  .issue-card{
+      border-radius: 16px;
+      border: 1px solid rgb(var(--cd-deep-rgb) /.1);
+      background: var(--cd-card);
+      box-shadow: 0 12px 30px rgb(var(--cd-deep-rgb) / 0.08);
+      padding: 1rem;
+    }
+    .issue-card .form-control,
+    .issue-card .form-select{
+      border-radius: 12px;
+    }
+    .issue-note{
+      font-size: .82rem;
+      color: var(--cd-muted);
+    }
+    .issue-toggle{
+      display:inline-flex;
+      align-items:center;
+      gap:.45rem;
+      border-radius:999px;
+      padding:.45rem .9rem;
+      border:1px solid var(--cd-border);
+      background:var(--cd-card);
+      color:var(--cd-text);
+      text-decoration:none;
+      box-shadow:0 10px 24px rgb(var(--cd-deep-rgb) / 0.08);
+    }
+    .issue-toggle:hover{ background:var(--cd-bg); }
+    .status-note{ font-size:.9rem; color:var(--muted); }
+
+    .modal-content{
+      background:rgb(var(--cd-white-rgb) / 0.96);
+      backdrop-filter:saturate(160%) blur(10px);
+      color:var(--ink);
+      border-radius:18px;
+      border:1px solid rgb(var(--cd-deep-rgb) / 0.10);
+      box-shadow:0 28px 80px rgb(var(--cd-deep-rgb) /.22);
+    }
+    .modal-header{ border-bottom:1px solid rgb(var(--cd-deep-rgb) / 0.10); }
+    .modal-footer{ border-top:1px solid rgb(var(--cd-deep-rgb) / 0.10); color:var(--muted); font-size:.82rem; }
+    .table thead th{
+      white-space:nowrap;
+      font-weight:950;
+      color:var(--cd-muted);
+      border-bottom:1px solid rgb(var(--cd-deep-rgb) / 0.10)!important;
+    }
+    .table tbody tr{ border-color:rgb(var(--cd-deep-rgb) / 0.08)!important; }
+    .table tbody tr:hover{ background:rgb(var(--cd-white-rgb) / 0.90); }
+    .table{ font-size:.88rem; }
+
+    .reco-tile{
+      border:1px solid rgb(var(--cd-deep-rgb) / 0.10);
+      border-radius:16px;
+      overflow:hidden;
+      background: rgb(var(--cd-white-rgb) / 0.92);
+      box-shadow: 0 18px 40px rgb(var(--cd-deep-rgb) / 0.08);
+      transition: transform .12s ease, box-shadow .12s ease;
+      height: 100%;
+      display:flex;
+      flex-direction:column;
+    }
+    .reco-tile:hover{ transform: translateY(-2px); box-shadow: 0 28px 60px rgb(var(--cd-deep-rgb) / 0.12); }
+    .reco-thumb{
+      aspect-ratio: 4 / 3;
+      border-bottom:1px solid rgb(var(--cd-deep-rgb) / 0.06);
+      background:var(--cd-card);
+      display:flex; align-items:center; justify-content:center;
+      overflow:hidden;
+    }
+    .reco-thumb img{ width:100%; height:100%; object-fit:contain; padding:10px; }
+    .reco-body{ padding:12px; display:flex; flex-direction:column; gap:6px; flex:1; }
+    .reco-name{ font-weight:950; margin:0; font-size:1rem; color:var(--ink); }
+    .reco-meta{ color:var(--muted); font-size:.85rem; margin:0; }
+    .reco-actions{ margin-top:auto; display:flex; gap:8px; flex-wrap:wrap; }
+
+    .btn-soft{
+      border-radius:999px;
+      font-weight:900;
+      border:1px solid rgb(var(--cd-deep-rgb) / 0.12);
+      background: rgb(var(--cd-white-rgb) / 0.90);
+      color: var(--ink);
+      padding: .55rem .9rem;
+      transition: transform .12s ease;
+    }
+    .btn-soft:hover{ transform: translateY(-1px); }
+
+    .footer{
+      background:rgb(var(--cd-white-rgb) / 0.84);
+      backdrop-filter:saturate(160%) blur(10px);
+      border-top:1px solid rgb(var(--cd-deep-rgb) / 0.08);
+      color:var(--cd-muted);
+      font-size:.84rem;
+    }
+    .footer a{ color:inherit; font-weight:900; text-decoration:none; }
+    .footer a:hover{ color:var(--primary); text-decoration:underline; }
+    .footer-badges{ display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; justify-content:flex-end; }
+    .mini-pill{
+      display:inline-flex; align-items:center; gap:.4rem;
+      border:1px solid rgb(var(--cd-deep-rgb) / 0.12);
+      padding:.35rem .65rem;
+      border-radius:999px;
+      background:rgb(var(--cd-white-rgb) / 0.85);
+      box-shadow:0 10px 20px rgb(var(--cd-deep-rgb) / 0.06);
+      font-weight:950;
+      font-size:.82rem;
+      color:var(--cd-deep);
+      white-space:nowrap;
+    }
+
+    .toast-dark{
+      background:var(--cd-deep);
+      color:var(--cd-bg);
+      border-radius:999px;
+      border:1px solid rgb(var(--cd-white-rgb) /.10);
+      box-shadow:0 20px 55px rgb(var(--cd-deep-rgb) /.30);
+    }
+    .toast-dark .btn-close{ filter:invert(1); }
+
+    /* Ported number modal */
+    .ported-modal .modal-header{
+      background: var(--cd-card)7ed;
+      border-bottom: 1px solid rgb(var(--cd-warning-rgb) / 0.20);
+    }
+    .ported-modal .warn-icon{
+      width:38px;height:38px;border-radius:50%;
+      display:inline-flex;align-items:center;justify-content:center;
+      background:var(--cd-warning-10);color:var(--cd-warning);
+      box-shadow:0 10px 20px rgb(var(--cd-warning-rgb) / 0.18);
+      flex:0 0 auto;
+    }
+    .ported-modal .prefix-badges{
+      display:flex; flex-wrap:wrap; gap:.4rem;
+    }
+    .ported-modal .prefix-badges .badge{
+      font-weight:900;
+    }
+
+    @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+    @keyframes fadeInUpHero{ from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:translateY(0);} }
+
+    @media (prefers-reduced-motion: reduce){
+      *{ animation:none!important; transition:none!important; scroll-behavior:auto!important; }
+    }
+    @media (max-width: 576px){
+      .hero{ min-height: 40vh; }
+      .hero h1{ font-size: 1.58rem; }
+      .hero-inner{ padding: 2.1rem 1rem; }
+      .brand-text{ max-width: 62vw; }
+      .thumb.thumb-service{ height: 155px; }
+      .fab-cart{ right:14px; bottom:14px; width:58px; height:58px; }
+      .tabs-wrap{ top:64px; }
+    }
+  </style>
+
+  {% set hero_bg = (store.hero.bg_image if store.hero and store.hero.bg_image else None) %}
+  {% if hero_bg %}
+  <style>
+    .hero{
+      background:
+        linear-gradient(135deg, rgb(var(--cd-white-rgb) / 0.92), rgb(var(--cd-white-rgb) / 0.96)),
+        url('{{ hero_bg }}') center/cover no-repeat;
+    }
+  </style>
+  {% else %}
+  <style>
+    .hero{
+      background:linear-gradient(135deg, var(--cd-primary-10), rgb(var(--cd-white-rgb) / 0.92));
+    }
+  </style>
+  {% endif %}
+
+  <!-- Paystack Inline -->
+
+  <script src="https://js.paystack.co/v1/inline.js"></script>
+  <script>
+    window.PAYSTACK_PUBLIC_KEY = "{{ (paystack_pk or '')|e }}";
+    if(!window.PAYSTACK_PUBLIC_KEY){
+      window.PAYSTACK_PUBLIC_KEY = "";
+    }
+  </script>
+</head>
+
+<body class="layout-{{ layout }}"
+  data-auth="{{ '1' if session and session.get('user_id') else '0' }}"
+  data-slug="{{ store.slug }}"
+  data-wa-digits="{{ whatsapp_number_digits or '' }}"
+>
+
+  <!-- NAV -->
+  <nav class="navbar navbar-expand-lg navbar-light">
+    <div class="container container-wide">
+      <a class="brand-wrap" href="#">
+        <img class="brand-logo"
+             src="{{ store.logo_url or 'https://via.placeholder.com/256?text=Logo' }}"
+             alt="{{ store.name }} logo" loading="eager" fetchpriority="high">
+        <div class="min-w-0">
+          <div class="brand-text">{{ store.name }}</div>
+          <div class="brand-sub">Secure instant ordering</div>
+        </div>
+      </a>
+
+      <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div id="nav" class="collapse navbar-collapse">
+        <ul class="navbar-nav ms-auto align-items-lg-center">
+          <li class="nav-item"><a class="nav-link" href="#main"><i class="bi bi-grid-3x3-gap me-1"></i> Browse</a></li>
+
+          {% if request.args.get('preview') and session and session.get('user_id') and (store.owner_id|string == session.get('user_id')) %}
+          <li class="nav-item">
+            <span class="nav-link"><i class="bi bi-eye"></i> Preview</span>
+          </li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-overlay"></div>
+    <div class="hero-inner container container-wide">
+      <div class="hero-pill">
+        <span class="hero-status-dot"></span>
+        <span>Instant top-up · Verified vendor</span>
+      </div>
+
+      <h1 class="mb-2">
+        {{ (store.hero.title if store.hero else '') or 'Affordable, Reliable Data—Anytime' }}
+      </h1>
+
+      <p class="lead mb-4">
+        {{ (store.hero.subtitle if store.hero else '') or 'Fund once, order instantly, and track everything.' }}
+      </p>
+
+      <div class="hero-cta">
+        <a href="#main" class="btn btn-darkish btn-pill">
+          <i class="bi bi-cart-plus me-1"></i> Shop Now
+        </a>
+
+        {% if whatsapp_number_digits %}
+        <a href="https://wa.me/{{ whatsapp_number_digits }}?text={{ ('Hello ' ~ store.name ~ ', I want to order.')|urlencode }}"
+           class="btn btn-primary btn-pill" target="_blank" rel="noopener">
+          <i class="bi bi-whatsapp me-1"></i> WhatsApp
+        </a>
+        {% endif %}
+
+        <div class="hero-status">
+          <span class="hero-status-dot"></span>
+          <span>Orders process automatically after payment</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN -->
+  <section id="main" class="services-section">
+    <div class="container container-wide">
+
+      <!-- Tabs -->
+      <div class="tabs-wrap mb-4 reveal">
+        <div class="tabs-card">
+          <div class="d-flex flex-column flex-md-row gap-2 justify-content-between align-items-md-center">
+            <div>
+              <div class="section-title mb-1">Browse</div>
+              <div class="section-sub">Switch between services and products.</div>
+            </div>
+
+            <ul class="nav nav-pills" id="storeTabs" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="tab-services" data-bs-toggle="pill"
+                        data-bs-target="#pane-services" type="button" role="tab" aria-controls="pane-services" aria-selected="true">
+                  <i class="bi bi-lightning-charge me-1"></i> Services
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tab-products" data-bs-toggle="pill"
+                        data-bs-target="#pane-products" type="button" role="tab" aria-controls="pane-products" aria-selected="false">
+                  <i class="bi bi-bag-check me-1"></i> Products
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="storeTabContent">
+
+        <!-- ===================== SERVICES PANE ===================== -->
+        <div class="tab-pane fade show active" id="pane-services" role="tabpanel" aria-labelledby="tab-services" tabindex="0">
+
+          {% macro service_card(svc) -%}
+            {% set can_order = svc.can_order %}
+            {% set reason = svc.disabled_reason %}
+            {% set is_mashup = (svc.name or '') == 'MTN MASHUP DATA' %}
+            <div class="card service-card h-100 reveal">
+              <div class="thumb thumb-service">
+                {% if svc.image_url %}
+                  <img src="{{ svc.image_url }}" alt="{{ svc.name }}" loading="lazy">
+                {% else %}
+                  <img src="https://via.placeholder.com/800x450?text={{ svc.name | urlencode }}" alt="{{ svc.name }}" loading="lazy">
+                {% endif %}
+              </div>
+
+              <div class="service-body">
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                  <div class="me-2">
+                    <h3 class="service-title m-0">{{ svc.name }}</h3>
+                    {% if is_mashup %}
+                      <div class="promo-badges">
+                        <span class="promo-badge promo-badge-new">New</span>
+                        <span class="promo-badge promo-badge-hot">Hot</span>
+                      </div>
+                    {% endif %}
+                    <div class="service-meta">{{ (svc.service_category or 'Service') | title }}</div>
+                  </div>
+
+                  {% if not can_order %}
+                    <span class="badge-dangerish">
+                      <i class="bi bi-exclamation-triangle-fill"></i>
+                      <span class="text-truncate" style="max-width: 220px;">{{ reason or 'Unavailable' }}</span>
+                    </span>
+                  {% else %}
+                    <span class="badge-soft">Available</span>
+                  {% endif %}
+                </div>
+
+                {% set visible_offers = (svc.offers or [])[:3] %}
+                {% if visible_offers %}
+                  <ul class="small text-muted mb-2 ps-3">
+                    {% for o in visible_offers %}
+                      <li data-offer-preview="1">
+                        {{ o.value_text or '-' }} — <strong>GHS {{ '%.2f'|format(o.total or 0) }}</strong>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+
+                <div class="mt-auto">
+                  <button class="btn btn-primary w-100 select-btn mt-1"
+                    data-service='{{ {"_id_str":svc._id_str,"name":svc.name,"offers":svc.offers or [],"service_network":(svc.service_network|default("")),"network":(svc.network|default(""))} | tojson }}'
+                    data-can="{{ 1 if can_order else 0 }}"
+                    data-reason="{{ reason or '' }}">
+                    <i class="bi bi-lightning-charge me-1"></i> Buy
+                  </button>
+                  <div class="quick-form mt-2" aria-hidden="true"></div>
+                </div>
+              </div>
+            </div>
+          {%- endmacro %}
+
+          <div class="services-layout">
+            <div>
+              <!-- Layout-driven services grid -->
+              <div class="row g-3">
+                {% if not services %}
+                  <div class="col-12 text-center text-muted">No services available.</div>
+                {% else %}
+                  {% set svc_col_class = 'col-12' if layout == 'grid-1' else ('col-6 col-lg-4' if layout == 'cards' else 'col-6') %}
+                  {% for svc in services %}
+                    <div class="{{ svc_col_class }}">
+                      {{ service_card(svc) }}
+                    </div>
+                  {% endfor %}
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- right rail -->
+            <aside class="rail d-none d-lg-block reveal" aria-label="Products you may like">
+              <div class="rail-head">
+                <p class="rail-title mb-0">Products you may like</p>
+                <p class="rail-sub">Random picks while you buy data.</p>
+              </div>
+              <div class="rail-body" id="railReco">
+                <div class="text-muted small">Loading…</div>
+              </div>
+              <div class="p-3 pt-0">
+                <button class="btn btn-soft w-100" id="btnGoProducts" type="button">
+                  <i class="bi bi-bag me-1"></i> View all products
+                </button>
+              </div>
+            </aside>
+          </div>
+
+        </div>
+
+        <!-- ===================== PRODUCTS PANE ===================== -->
+        <div class="tab-pane fade" id="pane-products" role="tabpanel" aria-labelledby="tab-products" tabindex="0">
+
+          {% macro product_card(p) -%}
+            {% set p_name = (p.name or p.title or 'Product') %}
+            {% set p_price = (p.price or p.amount or 0) %}
+            {% set p_desc = (p.description or p.desc or '') %}
+            {% set p_img = (p.image_url or p.image or p.photo_url or p.photo or '') %}
+            {% set wa_ok = (whatsapp_number_digits or '')|length > 0 %}
+            {% set msg = ("Hello " ~ store.name ~ ", I want to order: " ~ p_name ~ " | Price: GHS " ~ ('%.2f'|format(p_price|float))) %}
+
+            <div class="card service-card h-100 reveal">
+              <div class="thumb thumb-product">
+                {% if p_img %}
+                  <img src="{{ p_img }}" alt="{{ p_name }}" loading="lazy">
+                {% else %}
+                  <img src="https://via.placeholder.com/800x450?text={{ p_name | urlencode }}" alt="{{ p_name }}" loading="lazy">
+                {% endif %}
+              </div>
+
+              <div class="service-body">
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                  <div class="me-2 min-w-0">
+                    <h3 class="service-title m-0 text-truncate">{{ p_name }}</h3>
+                    <div class="muted-line">Order fast on WhatsApp</div>
+                  </div>
+                  <div class="price-tag">GHS {{ '%.2f'|format(p_price|float) }}</div>
+                </div>
+
+                {% if p_desc %}
+                  <div class="small text-muted mb-2" style="line-height:1.45">
+                    {{ p_desc }}
+                  </div>
+                {% else %}
+                  <div class="small text-muted mb-2" style="line-height:1.45">
+                    Quality product · Ready for delivery/pickup.
+                  </div>
+                {% endif %}
+
+                <div class="mt-auto d-flex gap-2 flex-wrap">
+                  {% if wa_ok %}
+                    <a class="btn btn-success w-100"
+                       href="https://wa.me/{{ whatsapp_number_digits }}?text={{ msg|urlencode }}"
+                       target="_blank" rel="noopener">
+                      <i class="bi bi-whatsapp me-1"></i> Order on WhatsApp
+                    </a>
+                  {% else %}
+                    <button class="btn btn-outline-secondary w-100" disabled>
+                      <i class="bi bi-whatsapp me-1"></i> WhatsApp not set
+                    </button>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {%- endmacro %}
+
+          {% if not products %}
+            <div class="text-center text-muted reveal">No products added yet.</div>
+          {% else %}
+            <!-- Layout-driven products grid -->
+            <div class="products-grid">
+              {% for p in products %}
+                <div class="pcol">
+                  {{ product_card(p) }}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAB CART -->
+  <button type="button" class="fab-cart" id="fabCart" data-bs-toggle="modal" data-bs-target="#cartModal" aria-label="Cart">
+    <i class="bi bi-cart3"></i>
+    <span class="badge" id="cartCount">0</span>
+  </button>
+
+  <!-- CART MODAL -->
+  <div class="modal fade" id="cartModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ store.name }} — Cart</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <div id="cartEmpty" class="text-muted">Your cart is empty.</div>
+
+          <div id="cartWrap" class="d-none">
+            <div class="table-responsive mb-2">
+              <table class="table align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Service</th>
+                    <th>Phone</th>
+                    <th>Offer</th>
+                    <th class="text-end">Pay (GHS)</th>
+                    <th style="width:80px"></th>
+                  </tr>
+                </thead>
+                <tbody id="cartBody"></tbody>
+              </table>
+            </div>
+
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-2 gap-2">
+              <div class="status-note" id="paymentNote" aria-live="polite">
+                Payment required before processing. Click “Pay Now”.
+              </div>
+
+              <div class="text-end">
+                <div class="fw-bold">Cart Total: GHS <span id="cartTotal">0.00</span></div>
+                <div class="small text-muted mt-1" id="feeNote">
+                  Heads-up: Paystack may add ~2% processing fee at checkout. This small extra is fine — we’ll still
+                  process your exact order total automatically.
+                </div>
+              </div>
+            </div>
+
+            <div class="text-end d-flex flex-wrap gap-2 justify-content-end">
+              <button class="btn btn-outline-danger" id="btnClear">Clear</button>
+
+              <button class="btn btn-primary" id="btnPay">
+                <span class="btn-text">Pay Now</span>
+                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+              </button>
+
+              <button class="btn btn-success" id="btnProcess" disabled>
+                <span class="btn-text">Process Order</span>
+                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer small text-muted">
+          If a service shows “Unavailable”, you can’t add it to the cart.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ RECOMMENDATIONS MODAL (opens ONLY when user clicks Buy) -->
+  <div class="modal fade" id="recoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title mb-0">Products you may like</h5>
+            <div class="small text-muted">Random picks from this store — you can close anytime.</div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <div id="recoEmpty" class="text-muted d-none">No products yet.</div>
+          <div class="reco-grid" id="recoGrid"></div>
+        </div>
+
+        <div class="modal-footer d-flex justify-content-between align-items-center">
+          <div class="small text-muted">Tip: images are set to “contain” so they show fully (no cropping).</div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-soft" data-bs-dismiss="modal">
+              <i class="bi bi-x-lg me-1"></i> Close
+            </button>
+            <button type="button" class="btn btn-primary" id="recoViewAll">
+              <i class="bi bi-bag me-1"></i> View all products
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ported number confirmation modal -->
+  <div class="modal fade ported-modal" id="portedModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="d-flex align-items-center gap-2">
+            <span class="warn-icon"><i class="bi bi-exclamation-triangle-fill"></i></span>
+            <div>
+              <h5 class="modal-title mb-0">Ported Number Detected</h5>
+              <div class="small text-muted">Confirm if this number was ported.</div>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2" id="portedModalMsg">The number doesn't match standard prefixes.</p>
+          <div class="prefix-badges" id="portedModalPrefixes"></div>
+        </div>
+        <div class="modal-footer d-flex justify-content-between">
+          <button type="button" class="btn btn-danger" id="portedCancelBtn">
+            No, I'll Correct It
+          </button>
+          <button type="button" class="btn btn-primary" id="portedConfirmBtn">
+            Yes, It's Ported
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+<!-- ===================== CHECK ORDER STATUS (ADD THIS BLOCK) ===================== -->
+<!-- ✅ Place this inside your Store Page HTML (e.g. inside #main container, under the tabs card OR above the services grid) -->
+
+<style>
+  /* ---- Check Status Card (scoped) ---- */
+  .check-status-card{
+    background: rgb(var(--cd-white-rgb) /.86);
+    backdrop-filter: saturate(160%) blur(10px);
+    border: 1px solid rgb(var(--cd-deep-rgb) / 0.10);
+    border-radius: 18px;
+    box-shadow: 0 18px 45px rgb(var(--cd-deep-rgb) / 0.08);
+    overflow: hidden;
+  }
+  .check-status-head{
+    padding: 14px 16px;
+    border-bottom: 1px solid rgb(var(--cd-deep-rgb) / 0.08);
+    background: rgb(var(--cd-white-rgb) / 0.65);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 12px;
+  }
+  .check-status-title{
+    font-weight: 950;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    font-size: .78rem;
+    color: var(--cd-muted);
+    margin:0;
+    display:flex;
+    align-items:center;
+    gap:.5rem;
+    white-space:nowrap;
+  }
+  .check-status-sub{
+    margin: 4px 0 0;
+    color: var(--cd-muted);
+    font-size: .88rem;
+    line-height: 1.35;
+  }
+  .check-status-body{
+    padding: 14px 16px 16px;
+  }
+  .check-status-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .check-status-btn{
+    border-radius: 999px;
+    font-weight: 950;
+    padding: .72rem 1.15rem;
+    border: 1px solid rgb(var(--cd-primary-rgb) / 0.28);
+    background: linear-gradient(135deg, var(--primary, var(--cd-primary)), var(--cd-primary));
+    color:var(--cd-card);
+    box-shadow: 0 16px 34px rgb(var(--cd-primary-rgb) / 0.20);
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    gap:.55rem;
+    transition: transform .12s ease, filter .12s ease;
+  }
+  .check-status-btn:hover{ transform: translateY(-1px); filter: brightness(.98); color:var(--cd-card); }
+
+  .check-status-note{
+    font-size: .86rem;
+    color: var(--cd-muted);
+    margin:0;
+    display:flex;
+    align-items:center;
+    gap:.45rem;
+  }
+
+  /* Nice spacing between this card and content around it */
+  .check-status-wrap{ margin: 14px 0 18px; }
+
+  @media (max-width:576px){
+    .check-status-actions{ justify-content: flex-start; }
+    .check-status-btn{ width:100%; justify-content:center; }
+    .check-status-note{ width:100%; }
+  }
+</style>
+
+<div class="check-status-wrap reveal">
+  <div class="check-status-card">
+    <div class="check-status-head">
+      <div>
+        <p class="check-status-title">
+          <i class="bi bi-receipt-cutoff"></i>
+          Check Order Status
+        </p>
+        <p class="check-status-sub">
+          Track your order progress after payment.
+        </p>
+      </div>
+
+      <span class="badge-soft d-none d-md-inline-flex">
+        <i class="bi bi-shield-check"></i> Secure
+      </span>
+    </div>
+
+    <div class="check-status-body">
+      <div class="check-status-actions">
+        <!-- ✅ This is your link -->
+        <a class="check-status-btn" href="/check-status">
+          <i class="bi bi-search"></i>
+          Check Status
+        </a>
+
+        <p class="check-status-note">
+          <i class="bi bi-info-circle"></i>
+          Use the same phone number you used during checkout.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ===================== /CHECK ORDER STATUS BLOCK ===================== -->
+
+  <!-- Complaint (Footer Section) -->
+  <section class="container container-wide my-5" id="orderIssue">
+    <div class="d-flex align-items-start gap-3 flex-wrap mb-3">
+      <button class="issue-toggle" type="button" id="issueToggle">
+        <i class="bi bi-chat-left-text"></i> Send Complaint
+      </button>
+      <div class="issue-note pt-1">If payment went through but the order did not process, submit a complaint here.</div>
+    </div>
+
+    <div class="issue-card d-none" id="issueCard">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+        <div>
+          <div class="section-title mb-1">Payment Issue?</div>
+          <div class="issue-note">Provide the Paystack reference and select the service/offer used.</div>
+        </div>
+        <button class="btn btn-soft btn-sm" type="button" id="issueFill">
+          <i class="bi bi-arrow-clockwise me-1"></i> Use last payment
+        </button>
+      </div>
+
+      <form id="issueForm" class="row g-2">
+        <div class="col-12 col-md-4">
+          <label class="form-label small">Phone used</label>
+          <input type="text" class="form-control" id="issuePhone" placeholder="e.g. 055xxxxxxx" required>
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label small">Paystack reference</label>
+          <input type="text" class="form-control" id="issueRef" placeholder="e.g. PS-..." required>
+          <div class="mt-2">
+            <button class="btn btn-outline-secondary btn-sm" type="button" id="issueCheckRef">
+              <i class="bi bi-search me-1"></i> Check reference
+            </button>
+            <span class="issue-note ms-2" id="issueRefStatus"></span>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label small">Date of payment</label>
+          <input type="date" class="form-control" id="issuePaymentDate" required>
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label small">Time of payment</label>
+          <input type="time" class="form-control" id="issuePaymentTime" required>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label small">Service</label>
+          <select class="form-select" id="issueService" required></select>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label small">Offer</label>
+          <select class="form-select" id="issueOffer" required></select>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label small">Order ID (optional)</label>
+          <input type="text" class="form-control" id="issueOrderId" placeholder="If you saw an order ID">
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label small">Message (optional)</label>
+          <input type="text" class="form-control" id="issueMsg" placeholder="Describe the issue briefly">
+        </div>
+        <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
+          <button type="submit" class="btn btn-primary btn-pill" id="issueSubmit">
+            <i class="bi bi-send me-1"></i> Submit Complaint
+          </button>
+          <div class="issue-note" id="issueStatus"></div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer mt-4 py-3">
+    <div class="container container-wide">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+        <div>
+          &copy; <span id="y"></span> {{ store.name }}.
+          <span class="ms-2 text-muted">All rights reserved.</span>
+        </div>
+
+        <div class="footer-badges">
+          {% if whatsapp_number_digits %}
+            <a class="mini-pill" href="{{ whatsapp_number_link }}" target="_blank" rel="noopener">
+              <i class="bi bi-whatsapp"></i> WhatsApp
+            </a>
+          {% endif %}
+
+          {% if whatsapp_group_link %}
+            <a class="mini-pill" href="{{ whatsapp_group_link }}" target="_blank" rel="noopener">
+              <i class="bi bi-people-fill"></i> WhatsApp Group
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast -->
+  <div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="appToast" class="toast toast-dark border-0">
+      <div class="d-flex">
+        <div class="toast-body" id="toastBody">Done</div>
+        <button class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ JSON data (no defaults) -->
+  <script type="application/json" id="productsJson">{{ (products or []) | tojson }}</script>
+  <script type="application/json" id="storeNameJson">{{ (store.name or "Store") | tojson }}</script>
+  <script type="application/json" id="storeWaJson">{{ (whatsapp_number_digits or "") | tojson }}</script>
+
+  <!-- ✅ Paystack payer identity: MUST come from DB (no fallback values) -->
+  <script type="application/json" id="psEmailJson">{{ "phonenumbernagmart@gmail.com" | tojson }}</script>
+  <script type="application/json" id="psFirstJson">{{ (paystack_payer_first or "") | tojson }}</script>
+  <script type="application/json" id="psLastJson">{{ (paystack_payer_last or "") | tojson }}</script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  {{- "" -}}
+  <script>
+  (function () {
+    // ================== helpers ==================
+    function readJsonScript(id, fallback) {
+      try {
+        const el = document.getElementById(id);
+        if (!el) return fallback;
+        const txt = (el.textContent || "").trim();
+        if (!txt) return fallback;
+        return JSON.parse(txt);
+      } catch (_) {
+        return fallback;
+      }
+    }
+
+    function money(n) { return Number(n || 0).toFixed(2); }
+    function money2(n) { return Number(n || 0).toFixed(2); }
+    function pesewas(n) { return Math.round(Number(n || 0) * 100); }
+
+    function normalizePhone(s) {
+      let d = String(s || "").replace(/\D+/g, "");
+      if (d.startsWith("2330") && d.length >= 13) {
+        d = "0" + d.slice(4, 13);
+      } else if (d.startsWith("233") && d.length >= 12) {
+        d = "0" + d.slice(3, 12);
+      }
+      if (d.length === 10 && d.startsWith("0")) return d;
+      return d;
+    }
+
+    const PORTED_PREFIXES = {
+      mtn: ["025", "024", "059", "055", "054", "053"],
+      telecel: ["020", "050"],
+      tigo: ["057", "056", "027", "026"]
+    };
+
+    const PORTED_LABELS = {
+      mtn: "MTN",
+      telecel: "TELECEL",
+      tigo: "TIGO"
+    };
+
+    function resolveNetworkGroupFromService(svc) {
+      if (!svc) return "";
+      const sn = String(svc.service_network || "").trim().toLowerCase();
+      if (sn === "mtn" || sn === "telecel") return sn;
+      if (sn === "airteltigo") return "tigo";
+      const nw = String(svc.network || "").trim().toLowerCase();
+      if (nw.includes("mtn")) return "mtn";
+      if (nw.includes("telecel") || nw.includes("vodafone")) return "telecel";
+      if (nw.includes("airteltigo") || nw.includes("tigo") || nw.includes("ishare") || nw.includes("bigtime") || nw.startsWith("at")) return "tigo";
+      const name = String(svc.name || "").trim().toLowerCase();
+      if (name.includes("mtn")) return "mtn";
+      if (name.includes("telecel") || name.includes("vodafone")) return "telecel";
+      if (name.includes("airteltigo") || name.includes("tigo") || name.includes("ishare") || name.includes("bigtime") || name.startsWith("at")) return "tigo";
+      return "";
+    }
+
+    function resolveNetworkGroupFromLine(line) {
+      if (!line) return "";
+      const group = String(line.network_group || line.service_network || "").trim().toLowerCase();
+      if (group === "mtn" || group === "telecel" || group === "tigo") return group;
+      if (group === "airteltigo") return "tigo";
+      const svcName = String(line.serviceName || line.service_name || "").trim().toLowerCase();
+      if (svcName.includes("mtn")) return "mtn";
+      if (svcName.includes("telecel") || svcName.includes("vodafone")) return "telecel";
+      if (svcName.includes("airteltigo") || svcName.includes("tigo") || svcName.includes("ishare") || svcName.includes("bigtime") || svcName.startsWith("at")) return "tigo";
+      return "";
+    }
+
+    function extractGhanaPrefix(raw) {
+      const digits = String(raw || "").replace(/\D+/g, "");
+      if (digits.length === 10 && digits.startsWith("0")) {
+        return digits.slice(0, 3);
+      }
+      if (digits.length === 12 && digits.startsWith("233")) {
+        return "0" + digits.slice(3, 5);
+      }
+      return "";
+    }
+
+    function normalizeGhanaPhone(raw) {
+      const digits = String(raw || "").replace(/\D+/g, "");
+      if (digits.length === 10 && digits.startsWith("0")) return digits;
+      if (digits.length === 12 && digits.startsWith("233")) return "0" + digits.slice(3);
+      return digits;
+    }
+
+    function networkFromPrefix(prefix) {
+      if (!prefix) return "";
+      if (PORTED_PREFIXES.mtn.includes(prefix)) return "mtn";
+      if (PORTED_PREFIXES.telecel.includes(prefix)) return "telecel";
+      if (PORTED_PREFIXES.tigo.includes(prefix)) return "tigo";
+      return "";
+    }
+
+    function portedKey(serviceKey, phoneLocal) {
+      return "ported_ok:" + String(serviceKey || "") + ":" + phoneLocal;
+    }
+
+    function isPortedConfirmed(serviceKey, phoneLocal) {
+      try { return sessionStorage.getItem(portedKey(serviceKey, phoneLocal)) === "1"; } catch (_e) { return false; }
+    }
+
+    function setPortedConfirmed(serviceKey, phoneLocal) {
+      try { sessionStorage.setItem(portedKey(serviceKey, phoneLocal), "1"); } catch (_e) {}
+    }
+
+    const portedModalEl = document.getElementById("portedModal");
+    const portedModal = portedModalEl ? bootstrap.Modal.getOrCreateInstance(portedModalEl) : null;
+    const portedModalMsg = document.getElementById("portedModalMsg");
+    const portedModalPrefixes = document.getElementById("portedModalPrefixes");
+    const portedConfirmBtn = document.getElementById("portedConfirmBtn");
+    const portedCancelBtn = document.getElementById("portedCancelBtn");
+    let portedPending = null;
+
+    function showPortedModal(opts) {
+      if (!portedModal || !portedModalMsg || !portedModalPrefixes) return Promise.resolve(false);
+      if (portedPending && portedPending.active) return portedPending.promise;
+      const phoneDisplay = opts.phone || "";
+      const group = opts.group || "";
+      const label = PORTED_LABELS[group] || "this network";
+      const prefixes = opts.prefixes || [];
+      portedModalMsg.textContent =
+        "The number " + phoneDisplay + " doesn't match standard " + label + " prefixes: " + prefixes.join(" ");
+      portedModalPrefixes.innerHTML = prefixes.map(p => `<span class="badge text-bg-warning">${p}</span>`).join("");
+      portedPending = {
+        active: true,
+        focusEl: opts.focusEl || null,
+        phoneLocal: opts.phoneLocal || normalizeGhanaPhone(phoneDisplay),
+        group: group,
+        prefixes: prefixes,
+      };
+      portedPending.promise = new Promise((resolve) => { portedPending.resolve = resolve; });
+      portedModal.show();
+      return portedPending.promise;
+    }
+
+    function closePortedModal(confirmed) {
+      if (!portedPending || !portedPending.active) return;
+      const pending = portedPending;
+      portedPending = null;
+      if (portedModal) portedModal.hide();
+      if (!confirmed && pending.focusEl) {
+        try {
+          pending.focusEl.classList.add("is-invalid");
+          pending.focusEl.focus();
+          setTimeout(() => pending.focusEl.classList.remove("is-invalid"), 1200);
+        } catch (_e) {}
+      }
+      if (pending.resolve) pending.resolve(!!confirmed);
+    }
+
+    if (portedConfirmBtn) {
+      portedConfirmBtn.addEventListener("click", () => closePortedModal(true));
+    }
+    if (portedCancelBtn) {
+      portedCancelBtn.addEventListener("click", () => closePortedModal(false));
+    }
+    if (portedModalEl) {
+      portedModalEl.addEventListener("hidden.bs.modal", () => {
+        if (portedPending && portedPending.active) closePortedModal(false);
+      });
+    }
+
+    async function ensurePortedConfirmedForLine(line, focusEl) {
+      const group = resolveNetworkGroupFromLine(line);
+      const expected = PORTED_PREFIXES[group] || [];
+      const prefix = extractGhanaPrefix(line.phone || "");
+      if (!group || !expected.length || !prefix) return true;
+      const actualGroup = networkFromPrefix(prefix);
+      if (!actualGroup) return true;
+      if (actualGroup === group) {
+        line.network_group = group;
+        line.detected_prefix = prefix;
+        line.expected_prefixes = expected;
+        return true;
+      }
+      const expectedLabel = PORTED_LABELS[group] || "this network";
+      const actualLabel = PORTED_LABELS[actualGroup] || "this network";
+      const phoneLocal = normalizeGhanaPhone(line.phone || "");
+      const serviceKey = line.serviceId || line.service_id || line.serviceName || group;
+      if (line.ported_confirmed || isPortedConfirmed(serviceKey, phoneLocal)) {
+        line.ported_confirmed = true;
+        line.network_group = group;
+        line.detected_prefix = prefix;
+        line.expected_prefixes = expected;
+        line.ported_expected_network = expectedLabel;
+        line.ported_detected_network = actualLabel;
+        line.ported_prefix = prefix;
+        setPortedConfirmed(serviceKey, phoneLocal);
+        return true;
+      }
+      const ok = await showPortedModal({
+        phone: phoneLocal || (line.phone || ""),
+        phoneLocal: phoneLocal,
+        group: group,
+        prefixes: expected,
+        focusEl: focusEl || null
+      });
+      if (ok) {
+        setPortedConfirmed(serviceKey, phoneLocal);
+        line.ported_confirmed = true;
+        line.network_group = group;
+        line.detected_prefix = prefix;
+        line.expected_prefixes = expected;
+        line.ported_expected_network = expectedLabel;
+        line.ported_detected_network = actualLabel;
+        line.ported_prefix = prefix;
+        return true;
+      }
+      return false;
+    }
+
+    async function ensurePortedConfirmedForCart(lines) {
+      for (let i = 0; i < lines.length; i++) {
+        const ok = await ensurePortedConfirmedForLine(lines[i], null);
+        if (!ok) return false;
+      }
+      return true;
+    }
+
+    (function portedConsoleTests(){
+      try {
+        console.log("[PortedTest] MTN + 057 => modal:", "mtn" !== networkFromPrefix("057"));
+        console.log("[PortedTest] TELECEL + 024 => modal:", "telecel" !== networkFromPrefix("024"));
+        console.log("[PortedTest] AT-iShare + 026 => modal:", "tigo" !== networkFromPrefix("026"));
+        console.log("[PortedTest] Unknown prefix => modal:", !!networkFromPrefix("000"));
+      } catch (_e) {}
+    })();
+
+    function setLoading(btn, on) {
+      if (!btn) return;
+      const txt = btn.querySelector(".btn-text");
+      const sp = btn.querySelector(".spinner-border");
+      btn.disabled = !!on;
+      if (on) { if (txt) txt.classList.add("d-none"); if (sp) sp.classList.remove("d-none"); }
+      else { if (txt) txt.classList.remove("d-none"); if (sp) sp.classList.add("d-none"); }
+    }
+
+    // ================== toast + misc UI ==================
+    const toastEl = document.getElementById("appToast");
+    const toast = (toastEl && window.bootstrap) ? new bootstrap.Toast(toastEl, { delay: 2400 }) : null;
+
+    function tell(m) {
+      const body = document.getElementById("toastBody");
+      if (body) body.textContent = m || "Done";
+      if (toast) toast.show();
+      else alert(m || "Done");
+    }
+
+    function showBlockedNewNumberModal() {
+      if (window.Swal) {
+        Swal.fire({
+          title: "Can't place order now",
+          text: "Please contact Admin",
+          icon: "warning",
+          confirmButtonText: "OK"
+        });
+        return;
+      }
+      alert("Can't place order now, Please contact Admin");
+    }
+
+    const yEl = document.getElementById("y");
+    if (yEl) yEl.textContent = new Date().getFullYear();
+
+    // reveal on scroll (safe)
+    if ("IntersectionObserver" in window) {
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add("in");
+            io.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.12 });
+      document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+    } else {
+      document.querySelectorAll(".reveal").forEach((el) => el.classList.add("in"));
+    }
+
+    // hide FAB on Products tab
+    const fab = document.getElementById("fabCart");
+    const tabServices = document.getElementById("tab-services");
+    const tabProducts = document.getElementById("tab-products");
+    function updateFab() {
+      const productsActive = tabProducts && tabProducts.classList.contains("active");
+      if (fab) fab.classList.toggle("hide", !!productsActive);
+    }
+    if (tabServices) tabServices.addEventListener("shown.bs.tab", updateFab);
+    if (tabProducts) tabProducts.addEventListener("shown.bs.tab", updateFab);
+    updateFab();
+
+    // ================== data from backend ==================
+    const PRODUCTS = readJsonScript("productsJson", []);
+    const STORE_NAME = readJsonScript("storeNameJson", "Store");
+    const WA = String(readJsonScript("storeWaJson", "") || "").trim();
+
+    // ✅ NO DEFAULTS: must come from DB (backend scripts)
+    const PS_EMAIL = String(readJsonScript("psEmailJson", "") || "").trim();
+    const PS_FIRST = String(readJsonScript("psFirstJson", "") || "").trim();
+    const PS_LAST  = String(readJsonScript("psLastJson", "") || "").trim();
+
+    function firstCartPhoneRaw() {
+      const data = (cart && Array.isArray(cart._data)) ? cart._data : [];
+      if (!data.length) return "";
+      const line = data[0] || {};
+      const keys = ["phone", "msisdn", "recipient", "number", "recipientPhone", "phone_number"];
+      for (let k = 0; k < keys.length; k++) {
+        const v = line[keys[k]];
+        if (v != null && String(v).trim() !== "") {
+          return String(v).trim();
+        }
+      }
+      return "";
+    }
+
+    function _digitsOnlyPhone(raw) {
+      return String(raw || "").replace(/\D+/g, "");
+    }
+
+    function getPaystackIdentity() {
+      const rawPhone = firstCartPhoneRaw();
+      const digits = _digitsOnlyPhone(rawPhone);
+      if (digits) {
+        return { email: digits + "nagmart@gmail.com", phone: rawPhone || digits };
+      }
+      return { email: "", phone: "" };
+    }
+
+    function ensurePaystackIdentityOrExplain() {
+      const ident = getPaystackIdentity();
+      if (!ident.email) {
+        tell("Enter the phone number for the first cart item before paying.");
+        return false;
+      }
+      return true;
+    }
+
+    async function getDynamicPaystackPk() {
+      const r = await fetch("/api/store-paystack-public-key/" + encodeURIComponent(SLUG), {
+        method: "GET",
+        headers: { "Accept": "application/json" }
+      });
+      const j = await r.json();
+      if (!r.ok || !j.success || !j.public_key) {
+        throw new Error((j && j.message) ? j.message : "No Paystack key");
+      }
+      return j;
+    }
+
+    function normalizeProduct(p) {
+      const name = (p && (p.name || p.title)) || "Product";
+      const price = Number(p && (p.price ?? p.amount ?? 0)) || 0;
+      const desc = (p && (p.description || p.desc)) || "";
+      const img = (p && (p.image_url || p.image || p.photo_url || p.photo)) || "";
+      return { name, price, desc, img };
+    }
+
+    function shuffle(arr) {
+      const a = (arr || []).slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+      }
+      return a;
+    }
+
+    // go to products tab
+    function goProductsTab() {
+      try {
+        const trigger = document.getElementById("tab-products");
+        if (trigger) new bootstrap.Tab(trigger).show();
+        const pane = document.getElementById("pane-products");
+        if (pane) pane.scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch (_) { }
+    }
+
+    const btnGoProducts = document.getElementById("btnGoProducts");
+    if (btnGoProducts) btnGoProducts.addEventListener("click", goProductsTab);
+
+    const recoViewAll = document.getElementById("recoViewAll");
+    if (recoViewAll) {
+      recoViewAll.addEventListener("click", () => {
+        const modalEl = document.getElementById("recoModal");
+        const inst = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+        if (inst) inst.hide();
+        setTimeout(goProductsTab, 160);
+      });
+    }
+
+    function buildRecoTile(p) {
+      const safeName = String(p.name || "Product");
+      const img = p.img || ("https://via.placeholder.com/800x450?text=" + encodeURIComponent(safeName));
+      const msg = "Hello " + STORE_NAME + ", I want to order: " + safeName + " | Price: GHS " + money(p.price);
+      const waLink = WA ? ("https://wa.me/" + WA + "?text=" + encodeURIComponent(msg)) : "";
+
+      return (
+        '<div class="reco-item">' +
+        '  <div class="reco-tile h-100">' +
+        '    <div class="reco-thumb"><img src="' + img + '" alt="' + safeName.replace(/"/g, "&quot;") + '" loading="lazy"></div>' +
+        '    <div class="reco-body">' +
+        '      <p class="reco-name">' + safeName + "</p>" +
+        '      <p class="reco-meta">GHS <strong>' + money(p.price) + "</strong></p>" +
+        '      <div class="reco-actions">' +
+        (WA
+          ? ('<a class="btn btn-success flex-grow-1" href="' + waLink + '" target="_blank" rel="noopener"><i class="bi bi-whatsapp me-1"></i> WhatsApp</a>')
+          : ('<button class="btn btn-outline-secondary flex-grow-1" disabled><i class="bi bi-whatsapp me-1"></i> WhatsApp not set</button>')
+        ) +
+        '        <button class="btn btn-soft" type="button" data-reco-view="1" title="View all products"><i class="bi bi-bag"></i></button>' +
+        "      </div>" +
+        "    </div>" +
+        "  </div>" +
+        "</div>"
+      );
+    }
+
+    function renderRailAndModalProducts() {
+      const rail = document.getElementById("railReco");
+      const grid = document.getElementById("recoGrid");
+      const empty = document.getElementById("recoEmpty");
+
+      if (!PRODUCTS || !PRODUCTS.length) {
+        if (rail) rail.innerHTML = '<div class="text-muted small">No products yet.</div>';
+        if (grid) grid.innerHTML = "";
+        if (empty) empty.classList.remove("d-none");
+        return;
+      }
+
+      const picks = shuffle(PRODUCTS).slice(0, 6).map(normalizeProduct);
+
+      if (rail) {
+        rail.innerHTML = picks.slice(0, 4).map(p => {
+          const img = p.img || ("https://via.placeholder.com/800x450?text=" + encodeURIComponent(p.name));
+          return (
+            '<a class="mini-card" href="javascript:void(0)" data-rail-go="1" title="View all products">' +
+            '  <div class="mini-img"><img src="' + img + '" alt="' + p.name.replace(/"/g, "&quot;") + '" loading="lazy"></div>' +
+            '  <div class="mini-info">' +
+            '    <p class="mini-name">' + p.name + "</p>" +
+            '    <div class="mini-price">GHS ' + money(p.price) + "</div>" +
+            '    <div class="mini-note">Tap to see products</div>' +
+            "  </div>" +
+            "</a>"
+          );
+        }).join("");
+        rail.querySelectorAll('[data-rail-go="1"]').forEach(a => a.addEventListener("click", goProductsTab));
+      }
+
+      if (grid) {
+        grid.innerHTML = picks.map(buildRecoTile).join("");
+        grid.querySelectorAll('[data-reco-view="1"]').forEach(b => b.addEventListener("click", goProductsTab));
+      }
+      if (empty) empty.classList.add("d-none");
+    }
+    renderRailAndModalProducts();
+
+    // ✅ Show reco modal ONLY when user clicks "Buy"
+    const RECO_KEY = "store_reco_seen_" + (document.body.getAttribute("data-slug") || "");
+    function shouldShowReco() {
+      try {
+        const last = Number(localStorage.getItem(RECO_KEY) || "0");
+        return (Date.now() - last) > (10 * 60 * 1000);
+      } catch (_) { return true; }
+    }
+    function markRecoSeen() { try { localStorage.setItem(RECO_KEY, String(Date.now())); } catch (_) { } }
+    function openRecoModal() {
+      if (!PRODUCTS || !PRODUCTS.length) return;
+      if (!shouldShowReco()) return;
+      renderRailAndModalProducts();
+      markRecoSeen();
+      const modalEl = document.getElementById("recoModal");
+      if (!modalEl) return;
+      const m = new bootstrap.Modal(modalEl, { backdrop: true, keyboard: true, focus: true });
+      m.show();
+    }
+
+    // ================== EXISTING CART + PAY LOGIC ==================
+    const SLUG = document.body.getAttribute("data-slug") || "";
+    const CART_KEY = "store_cart_" + SLUG;
+    const ISSUE_KEY = "store_issue_" + SLUG;
+    const PAY_CONFIRMED_KEY = "store_ps_confirmed_" + SLUG;
+    const QS = new URLSearchParams(window.location.search || "");
+    const ADMIN_OVERRIDE = QS.get("admin_override") === "1";
+    const COMPLAINT_ID = QS.get("complaint_id") || "";
+
+    function _formatGb(n) {
+      if (n == null || isNaN(n)) return "-";
+      const r = Math.round(n);
+      return (Math.abs(n - r) < 1e-9 ? String(r) : String(parseFloat(n.toFixed(2)).toString())) + " GB";
+    }
+    function _extractGb(raw) {
+      if (!raw) return null;
+      const s = String(raw).trim();
+      var m = s.match(/^\s*([0-9]+(?:\.[0-9]+)?)\s*gb\s*$/i);
+      if (m) return parseFloat(m[1]);
+      m = s.match(/^\s*([0-9]+(?:\.[0-9]+)?)\s*mb\s*$/i);
+      if (m) return parseFloat(m[1]) / 1000;
+
+      if (s.startsWith("{") && s.endsWith("}")) {
+        try {
+          const j = JSON.parse(
+            s.replace(/'/g, '"')
+              .replace(/\bNone\b/g, "null")
+              .replace(/\bTrue\b/g, "true")
+              .replace(/\bFalse\b/g, "false")
+          );
+          if (j && typeof j === "object") {
+            if (j.gb != null && !isNaN(parseFloat(j.gb))) return parseFloat(j.gb);
+            if (j.offer != null && !isNaN(parseFloat(j.offer))) return parseFloat(j.offer) / 1000;
+            if (j.volume != null && !isNaN(parseFloat(j.volume))) return parseFloat(j.volume) / 1000;
+          }
+        } catch (_) { }
+      }
+      return null;
+    }
+
+    function normalizeServerPreviewOfferLabels() {
+      var items = document.querySelectorAll('li[data-offer-preview="1"]');
+      for (var i = 0; i < items.length; i++) {
+        var li = items[i];
+        var strong = li.querySelector("strong");
+        var priceHTML = strong ? strong.outerHTML : "";
+        var clone = li.cloneNode(true);
+        var st = clone.querySelector("strong"); if (st) st.remove();
+        var leftText = clone.textContent.split("—")[0].trim();
+        var gb = _extractGb(leftText);
+        var label = gb != null ? _formatGb(gb) : (leftText || "-");
+        li.innerHTML = label + " — " + priceHTML;
+      }
+    }
+    normalizeServerPreviewOfferLabels();
+
+    function parseMaybeObject(v) {
+      if (v && typeof v === "object") return v;
+      if (typeof v !== "string") return null;
+      const s = v.trim();
+      if (!(s.startsWith("{") && s.endsWith("}"))) return null;
+      try { return JSON.parse(s); } catch (_) { }
+      try {
+        const fixed = s.replace(/'/g, '"')
+          .replace(/\bNone\b/g, "null")
+          .replace(/\bTrue\b/g, "true")
+          .replace(/\bFalse\b/g, "false");
+        return JSON.parse(fixed);
+      } catch (_) { return null; }
+    }
+
+    function gbLabelFromOffer(o, svcName) {
+      const svc = (svcName || "").toLowerCase();
+      if (svc === "afa talktime") {
+        let v = o ? o.value : undefined;
+        const maybeObj = parseMaybeObject(v);
+        if (maybeObj) v = maybeObj;
+        if (v && typeof v === "object" && v.volume != null) {
+          const mins = Number(v.volume);
+          if (!isNaN(mins)) return Math.round(mins) + " mins";
+        }
+        if (typeof v === "string") {
+          const m = v.match(/(\d+(?:\.\d+)?)/);
+          if (m) return Math.round(parseFloat(m[1])) + " mins";
+        }
+      }
+      if (o && typeof o.value_text === "string" && o.value_text.trim()) {
+        const vt = o.value_text.trim();
+        if (/min/i.test(vt)) return vt;
+        const mbMatch = vt.match(/^\s*([0-9]+(?:\.[0-9]+)?)\s*mb\s*$/i);
+        if (mbMatch) return _formatGb(parseFloat(mbMatch[1]) / 1000);
+      }
+      let v = o ? o.value : undefined;
+      const maybeObj = parseMaybeObject(v);
+      if (maybeObj) v = maybeObj;
+
+      let gb = null;
+      if (v && typeof v === "object") {
+        if (v.gb != null && !isNaN(parseFloat(v.gb))) gb = parseFloat(v.gb);
+        else if (v.offer != null && !isNaN(parseFloat(v.offer))) gb = parseFloat(v.offer) / 1000;
+        else if (v.volume != null && !isNaN(parseFloat(v.volume))) gb = parseFloat(v.volume) / 1000;
+      }
+      if (gb == null && typeof v === "string") {
+        const g = v.match(/^\s*([0-9]+(?:\.[0-9]+)?)\s*gb\s*$/i); if (g) gb = parseFloat(g[1]);
+        const m = v.match(/^\s*([0-9]+(?:\.[0-9]+)?)\s*mb\s*$/i); if (m) gb = parseFloat(m[1]) / 1000;
+      }
+      if (gb != null) return _formatGb(gb);
+      if (typeof v === "string") return v.replace(/gb/ig, "GB");
+      return "-";
+    }
+
+    const cart = {
+      _data: [],
+      load() { try { this._data = JSON.parse(localStorage.getItem(CART_KEY) || "[]") || []; } catch (e) { this._data = []; } },
+      save() { try { localStorage.setItem(CART_KEY, JSON.stringify(this._data)); } catch (e) { } },
+      add(line) { this._data.push(line); this.save(); renderCart(); },
+      remove(i) { this._data.splice(i, 1); this.save(); renderCart(); },
+      clear() { this._data = []; this.save(); renderCart(); },
+      total() { return this._data.reduce((t, i) => t + Number(i.amount || 0), 0); }
+    };
+
+    function buildForm(uid, svc) {
+      const opts = (svc.offers || []).filter(o => o && o.total != null);
+      let options = '<option value="">Choose offer</option>';
+      for (let i = 0; i < opts.length; i++) {
+        const o = opts[i];
+        const lab = gbLabelFromOffer(o);
+        options += '<option value="' + i + '" data-total="' + (o.total ?? "") + '" data-base="' + (o.amount ?? "") + '">GHS ' + Number(o.total || 0).toFixed(2) + " — " + (lab || "-") + "</option>";
+      }
+      return ""
+        + '<div class="row g-2 align-items-end">'
+        + '  <div class="col-12"><div class="small text-muted">Choose an offer, then enter phone (starts with 0)</div></div>'
+        + '  <div class="col-12 col-lg-6">'
+        + '    <label class="form-label mb-1" for="qf_offer_' + uid + '">Offer</label>'
+        + '    <select class="form-select form-select-lg" id="qf_offer_' + uid + '">' + options + '</select>'
+        + '  </div>'
+        + '  <div class="col-12 col-lg-6">'
+        + '    <label class="form-label mb-1" for="qf_phone_' + uid + '">Phone</label>'
+        + '    <input class="form-control form-control-lg" id="qf_phone_' + uid + '" placeholder="0xxxxxxxxx" inputmode="numeric" maxlength="14">'
+        + '  </div>'
+        + '  <div class="col-12 d-flex gap-2 flex-wrap">'
+        + '    <button class="btn btn-primary" id="qf_add_' + uid + '">'
+        + '      <span class="btn-text">Add to Cart</span>'
+        + '      <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>'
+        + '    </button>'
+        + '    <button class="btn btn-outline-secondary" id="qf_cancel_' + uid + '">Cancel</button>'
+        + '  </div>'
+        + '</div>';
+    }
+
+    document.querySelectorAll(".select-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const can = btn.getAttribute("data-can") === "1";
+        if (!can) { tell(btn.getAttribute("data-reason") || "This service is unavailable."); return; }
+
+        openRecoModal();
+
+        let svc = {};
+        try { svc = JSON.parse(btn.getAttribute("data-service") || "{}"); } catch (e) { }
+
+        svc.offers = (svc.offers || []).map(o => {
+          const amountNum = Number(o.amount);
+          const amount = Number.isFinite(amountNum) ? amountNum : 0;
+          return Object.assign({}, o, { amount: amount, value_text: (o.value_text || gbLabelFromOffer(o, svc.name)) });
+        });
+
+        const card = btn.closest(".service-card");
+        const qf = card ? card.querySelector(".quick-form") : null;
+        if (!qf) return;
+
+        document.querySelectorAll(".quick-form.show").forEach(el => {
+          if (el !== qf) { el.classList.remove("show"); el.innerHTML = ""; el.setAttribute("aria-hidden", "true"); }
+        });
+
+        const uid = String(Date.now()) + Math.floor(Math.random() * 1000);
+        qf.innerHTML = buildForm(uid, svc);
+        qf.classList.add("show"); qf.setAttribute("aria-hidden", "false");
+
+        const offerEl = qf.querySelector("#qf_offer_" + uid);
+        const phoneEl = qf.querySelector("#qf_phone_" + uid);
+        const addBtn = qf.querySelector("#qf_add_" + uid);
+        const cancelBtn = qf.querySelector("#qf_cancel_" + uid);
+
+        if (phoneEl) {
+          phoneEl.addEventListener("input", () => { phoneEl.value = normalizePhone(phoneEl.value); });
+          phoneEl.addEventListener("blur", async () => {
+            const phoneVal = normalizePhone(phoneEl.value || "");
+            if (!/^0\d{9}$/.test(phoneVal)) return;
+            const previewLine = { phone: phoneVal, serviceName: svc.name, service_network: svc.service_network, network_group: resolveNetworkGroupFromService(svc) };
+            await ensurePortedConfirmedForLine(previewLine, phoneEl);
+          });
+        }
+
+        if (addBtn) {
+          addBtn.addEventListener("click", async () => {
+            const idx = Number(offerEl ? offerEl.value : "");
+            const of = (svc.offers || [])[idx];
+            const phone = normalizePhone(phoneEl ? phoneEl.value : "");
+            if (isNaN(idx) || !of) { tell("Please choose an offer."); if (offerEl) offerEl.focus(); return; }
+            if (!/^0\d{9}$/.test(phone)) { tell("Phone must be 10 digits (e.g. 0530393625)"); if (phoneEl) phoneEl.focus(); return; }
+            const eligibility = await checkPhoneOrderEligibility(phone);
+            if (!eligibility.allowed) {
+              showBlockedNewNumberModal();
+              if (phoneEl) phoneEl.focus();
+              return;
+            }
+
+            const line = {
+              serviceId: svc._id_str,
+              serviceName: svc.name,
+              phone: phone,
+              value: of.value_text || "-",
+              value_obj: of.value || null,
+              base_amount: Number(of.amount || 0),
+              amount: Number(of.total || 0),
+              service_network: svc.service_network || "",
+              network_group: resolveNetworkGroupFromService(svc)
+            };
+
+            const ok = await ensurePortedConfirmedForLine(line, phoneEl);
+            if (!ok) return;
+
+            setLoading(addBtn, true);
+            setTimeout(() => {
+              cart.add(line);
+              setLoading(addBtn, false);
+              tell("Added to cart");
+              qf.classList.remove("show"); qf.innerHTML = ""; qf.setAttribute("aria-hidden", "true");
+            }, 100);
+          });
+        }
+
+        if (cancelBtn) {
+          cancelBtn.addEventListener("click", () => {
+            qf.classList.remove("show"); qf.innerHTML = ""; qf.setAttribute("aria-hidden", "true");
+          });
+        }
+      });
+    });
+
+    async function checkPhoneOrderEligibility(phone) {
+      try {
+        const r = await fetch("/api/phone-order-eligibility", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: phone })
+        });
+        const j = await r.json();
+        if (r.ok && j && j.success) return j;
+      } catch (_e) {}
+      return { allowed: true, message: "" };
+    }
+
+    const cartBody = document.getElementById("cartBody");
+    const cartTotalEl = document.getElementById("cartTotal");
+    const cartEmpty = document.getElementById("cartEmpty");
+    const cartWrap = document.getElementById("cartWrap");
+    const cartCount = document.getElementById("cartCount");
+    const paymentNote = document.getElementById("paymentNote");
+    const btnPay = document.getElementById("btnPay");
+    const btnProcess = document.getElementById("btnProcess");
+
+    function renderCart() {
+      if (!cartBody) return;
+      cartBody.innerHTML = "";
+      cart._data.forEach((it, i) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td>" + it.serviceName + "</td>" +
+          "<td>" + it.phone + "</td>" +
+          "<td>" + (it.value || "-") + "</td>" +
+          '<td class="text-end"><strong>GHS ' + money2(it.amount || 0) + "</strong></td>" +
+          '<td class="text-end"><button class="btn btn-sm btn-outline-danger" data-rm="' + i + '">Remove</button></td>';
+        cartBody.appendChild(tr);
+      });
+
+      const n = cart._data.length;
+      if (cartCount) cartCount.textContent = String(n);
+
+      const payTotal = cart.total();
+      if (cartTotalEl) cartTotalEl.textContent = money2(payTotal);
+
+      if (cartEmpty) cartEmpty.classList.toggle("d-none", n !== 0);
+      if (cartWrap) cartWrap.classList.toggle("d-none", n === 0);
+
+      lockProcessUntilPayment();
+    }
+
+    if (cartBody) {
+      cartBody.addEventListener("click", (e) => {
+        const b = e.target.closest("button[data-rm]");
+        if (!b) return;
+        cart.remove(Number(b.getAttribute("data-rm")));
+        tell("Removed");
+      });
+    }
+
+    const btnClear = document.getElementById("btnClear");
+    if (btnClear) {
+      btnClear.addEventListener("click", () => {
+        if (!cart._data.length) return;
+        if (confirm("Clear all items?")) { cart.clear(); tell("Cart cleared"); }
+      });
+    }
+
+    function saveConfirmedPayment(obj) { try { localStorage.setItem(PAY_CONFIRMED_KEY, JSON.stringify(obj || {})); } catch (e) { } }
+    function getConfirmedPayment() { try { return JSON.parse(localStorage.getItem(PAY_CONFIRMED_KEY) || "{}"); } catch (e) { return {}; } }
+    function clearConfirmedPayment() { try { localStorage.removeItem(PAY_CONFIRMED_KEY); } catch (e) { } }
+    function saveIssueSnapshot(obj){ try { localStorage.setItem(ISSUE_KEY, JSON.stringify(obj || {})); } catch (e) { } }
+    function getIssueSnapshot(){ try { return JSON.parse(localStorage.getItem(ISSUE_KEY) || "{}"); } catch (e) { return {}; } }
+    let adminOverrideRef = "";
+    let issueRefTag = "";
+
+    function isPaidEnough(confirmedAmtGhs, requiredGhs) {
+      return Number(confirmedAmtGhs || 0) + 1e-2 >= Number(requiredGhs || 0);
+    }
+
+    function lockProcessUntilPayment() {
+      if (ADMIN_OVERRIDE) {
+        if (btnPay) btnPay.disabled = true;
+        if (btnProcess) btnProcess.disabled = !cart._data.length;
+        if (paymentNote) {
+          paymentNote.textContent = "Admin override: payment is not required to process this order.";
+        }
+        return;
+      }
+      const payTotal = cart.total();
+      const confirmed = getConfirmedPayment();
+      const ok = confirmed && confirmed.amount_ghs != null && isPaidEnough(confirmed.amount_ghs, payTotal);
+
+      if (btnProcess) btnProcess.disabled = !ok;
+      if (paymentNote) {
+        paymentNote.textContent = ok
+          ? ("Payment confirmed (Ref: " + (confirmed.reference || "") + "). Verifying & processing…")
+          : 'Payment required before processing. Click “Pay Now”.';
+      }
+    }
+
+    if (btnPay) {
+      btnPay.addEventListener("click", async () => {
+        if (ADMIN_OVERRIDE) { tell("Admin override mode: payment is not required."); return; }
+        if (!cart._data.length) { tell("Cart is empty."); return; }
+
+        const portedOk = await ensurePortedConfirmedForCart(cart._data);
+        if (!portedOk) { cart.save(); return; }
+        cart.save();
+
+        // ✅ must have DB identity; no defaults
+        if (!ensurePaystackIdentityOrExplain()) return;
+
+        let pkInfo;
+        try {
+          pkInfo = await getDynamicPaystackPk();
+        } catch (_e) {
+          tell("Payment is not configured. Contact support.");
+          return;
+        }
+
+        const pk = String(pkInfo.public_key || "").trim();
+        if (!pk) { tell("Payment is not configured. Contact support."); return; }
+
+        if (typeof window.PaystackPop === "undefined") {
+          tell("Paystack script not loaded. Please refresh or contact support.");
+          return;
+        }
+
+        const payTotalGhs = cart.total();
+        const amountPesewas = pesewas(payTotalGhs);
+        const ref = "PS-" + Date.now() + "-" + Math.floor(Math.random() * 1e6);
+        const ident = getPaystackIdentity();
+        const payEmail = ident.email;
+
+        const items = cart._data.map(c => ({
+          s: c.serviceName, p: c.phone, v: c.value,
+          a: Number(c.amount || 0)
+        }));
+
+        setLoading(btnPay, true);
+
+        const handler = PaystackPop.setup({
+          key: pk,
+          email: payEmail,
+          amount: amountPesewas,
+          currency: "GHS",
+          firstname: PS_FIRST,
+          lastname: PS_LAST,
+          reference: ref,
+          metadata: {
+            payer: { email: payEmail, first_name: PS_FIRST, last_name: PS_LAST, phone: ident.phone || "" },
+            cart_snapshot: items,
+            pay_total_ghs: Number(payTotalGhs.toFixed(2)),
+            fee_note: "Paystack may add ~2% processing fee; backend accepts any paid >= cart total.",
+            source: "nagonu_store_inline_checkout",
+            slug: SLUG,
+            key_used: pkInfo.key_used,
+            day_key: pkInfo.day_key
+          },
+          callback: function (response) {
+            const confirmedObj = {
+              reference: response.reference || ref,
+              amount_pesewas: amountPesewas,
+              amount_ghs: payTotalGhs,
+              confirmed_at: new Date().toISOString(),
+              via_inline: true,
+              key_used: pkInfo.key_used,
+              day_key: pkInfo.day_key
+            };
+            saveConfirmedPayment(confirmedObj);
+            saveIssueSnapshot({
+              reference: confirmedObj.reference,
+              cart: cart._data || [],
+              phone: (cart._data && cart._data[0] && cart._data[0].phone) ? cart._data[0].phone : "",
+              saved_at: confirmedObj.confirmed_at
+            });
+            setLoading(btnPay, false);
+            tell("Payment received — verifying…");
+            lockProcessUntilPayment();
+            proceedCheckoutAuto();
+          },
+          onClose: function () {
+            setLoading(btnPay, false);
+          }
+        });
+
+        try { handler.openIframe(); }
+        catch (e) { setLoading(btnPay, false); tell("Unable to open payment window."); }
+      });
+    }
+
+    if (btnProcess) btnProcess.addEventListener("click", () => proceedCheckoutAuto());
+
+    async function proceedCheckoutAuto() {
+      if (!cart._data.length) { tell("Cart is empty."); return; }
+
+      if (ADMIN_OVERRIDE) {
+        if (btnProcess) setLoading(btnProcess, true);
+        try {
+          const r = await fetch("/store-checkout/" + encodeURIComponent(SLUG), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              cart: cart._data,
+              method: "admin_override",
+              paystack: { reference: adminOverrideRef || (issueRef && issueRef.value) || "" }
+            })
+          });
+          const j = await r.json();
+          if (r.ok && j.success) {
+            tell("Order processed (admin override): " + (j.order_id || ""));
+            cart.clear();
+            clearConfirmedPayment();
+            saveIssueSnapshot({});
+          } else {
+            tell(j.message || "Admin override failed.");
+          }
+        } catch (_e) {
+          tell("Network error.");
+        }
+        if (btnProcess) setLoading(btnProcess, false);
+        return;
+      }
+
+      const portedOk = await ensurePortedConfirmedForCart(cart._data);
+      if (!portedOk) { cart.save(); return; }
+      cart.save();
+
+      const confirmed = getConfirmedPayment();
+
+      // ✅ must have DB identity; no defaults
+      if (!ensurePaystackIdentityOrExplain()) return;
+
+      const payNow = cart.total();
+
+      if (!confirmed || confirmed.amount_ghs == null) {
+        tell("Please pay first."); return;
+      }
+      if (!isPaidEnough(confirmed.amount_ghs, payNow)) {
+        tell("Amount paid is less than required. Please complete full payment.");
+        if (btnProcess) btnProcess.disabled = true;
+        return;
+      }
+
+      if (btnProcess) setLoading(btnProcess, true);
+
+      try {
+        saveIssueSnapshot({
+          reference: confirmed.reference || "",
+          cart: cart._data || [],
+          phone: (cart._data && cart._data[0] && cart._data[0].phone) ? cart._data[0].phone : "",
+          saved_at: new Date().toISOString()
+        });
+
+        const r = await fetch("/store-checkout/" + encodeURIComponent(SLUG), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              cart: cart._data,
+              method: "paystack_inline",
+              paystack: {
+                reference: confirmed.reference || "",
+                amount_pesewas: Math.round(payNow * 100),
+                amount_ghs: payNow,
+                via_inline: true,
+                key_used: confirmed.key_used || "",
+                day_key: confirmed.day_key || "",
+                payer: { email: getPaystackIdentity().email, first_name: PS_FIRST, last_name: PS_LAST, phone: getPaystackIdentity().phone || "" }
+              }
+            })
+          });
+
+        const j = await r.json();
+        if (r.ok && j.success) {
+          tell("✅ Order received: " + (j.order_id || ""));
+          cart.clear();
+          clearConfirmedPayment();
+          saveIssueSnapshot({});
+
+          const modalEl = document.getElementById("cartModal");
+          const inst = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+          if (inst) inst.hide();
+
+          const first = j.items && j.items[0];
+          if (first && first.phone) {
+            window.location.href = "/check-status?phone=" + encodeURIComponent(first.phone);
+          }
+        } else {
+          tell(j.message || "Checkout failed.");
+        }
+      } catch (_e) {
+        tell("Network error.");
+      }
+
+      if (btnProcess) setLoading(btnProcess, false);
+    }
+
+    // -------------------------
+    // Complaint submit (store page)
+    // -------------------------
+    const issueForm = document.getElementById("issueForm");
+    const issueFill = document.getElementById("issueFill");
+    const issueStatus = document.getElementById("issueStatus");
+    const issueToggle = document.getElementById("issueToggle");
+    const issueCard = document.getElementById("issueCard");
+    const issuePhone = document.getElementById("issuePhone");
+    const issueRef = document.getElementById("issueRef");
+    const issueCheckRef = document.getElementById("issueCheckRef");
+    const issueRefStatus = document.getElementById("issueRefStatus");
+    const issuePaymentDate = document.getElementById("issuePaymentDate");
+    const issuePaymentTime = document.getElementById("issuePaymentTime");
+    const issueService = document.getElementById("issueService");
+    const issueOffer = document.getElementById("issueOffer");
+    const issueOrderId = document.getElementById("issueOrderId");
+    const issueMsg = document.getElementById("issueMsg");
+    const issueSubmit = document.getElementById("issueSubmit");
+
+    function setIssueStatus(msg, isErr){
+      if (!issueStatus) return;
+      issueStatus.textContent = msg || "";
+      issueStatus.classList.toggle("text-danger", !!isErr);
+    }
+
+    function setIssueRefStatus(msg, isErr){
+      if (!issueRefStatus) return;
+      issueRefStatus.textContent = msg || "";
+      issueRefStatus.classList.toggle("text-danger", !!isErr);
+    }
+
+    if (issueToggle && issueCard) {
+      issueToggle.addEventListener("click", function(){
+        issueCard.classList.toggle("d-none");
+      });
+    }
+
+    function buildIssueServiceOptions(){
+      const buttons = document.querySelectorAll(".select-btn[data-service]");
+      const services = [];
+      buttons.forEach(btn => {
+        try {
+          const svc = JSON.parse(btn.getAttribute("data-service") || "{}");
+          if (!svc || !svc._id_str) return;
+          svc.offers = (svc.offers || []).map(o => {
+            const amountNum = Number(o.amount);
+            const amount = Number.isFinite(amountNum) ? amountNum : 0;
+            return Object.assign({}, o, { amount: amount, value_text: (o.value_text || gbLabelFromOffer(o, svc.name)) });
+          });
+          services.push(svc);
+        } catch (_e) {}
+      });
+      return services;
+    }
+
+    const issueServices = buildIssueServiceOptions();
+    function renderIssueServices(){
+      if (!issueService) return;
+      let opts = '<option value="">Select service</option>';
+      issueServices.forEach(s => {
+        opts += '<option value="' + s._id_str + '">' + (s.name || "Service") + '</option>';
+      });
+      issueService.innerHTML = opts;
+    }
+
+    function renderIssueOffers(serviceId){
+      if (!issueOffer) return;
+      const svc = issueServices.find(s => s._id_str === serviceId);
+      let opts = '<option value="">Select offer</option>';
+      if (svc && Array.isArray(svc.offers)) {
+        svc.offers.forEach((o, idx) => {
+          const lab = gbLabelFromOffer(o, svc.name);
+          const price = Number(o.total || 0).toFixed(2);
+          opts += '<option value="' + idx + '">GHS ' + price + ' — ' + (lab || "-") + '</option>';
+        });
+      }
+      issueOffer.innerHTML = opts;
+    }
+
+    function fillIssueFromCartSnapshot(cartSnap){
+      if (!cartSnap || !cartSnap.length) return;
+      const it = cartSnap[0] || {};
+      if (issuePhone && it.phone) issuePhone.value = it.phone;
+      if (issueService && it.serviceId) {
+        issueService.value = it.serviceId;
+        renderIssueOffers(it.serviceId);
+        if (issueOffer) {
+          const svc = issueServices.find(s => s._id_str === it.serviceId);
+          if (svc && Array.isArray(svc.offers)) {
+            const idx = svc.offers.findIndex(o => (o.value_text || "") === (it.value || "") || (o.value || "") === (it.value_obj || ""));
+            if (idx >= 0) issueOffer.value = String(idx);
+          }
+        }
+      }
+    }
+
+    function fillIssueFromLast(){
+      const snap = getIssueSnapshot();
+      if (issueRef) issueRef.value = snap.reference || "";
+      if (issuePhone && snap.phone) issuePhone.value = snap.phone;
+      if (snap.cart) fillIssueFromCartSnapshot(snap.cart);
+      if (!snap.reference && !snap.cart) {
+        setIssueStatus("No recent payment snapshot found. Please enter details manually.", true);
+      } else {
+        setIssueStatus("Loaded last payment details.", false);
+      }
+    }
+    if (issueFill) issueFill.addEventListener("click", fillIssueFromLast);
+    renderIssueServices();
+    fillIssueFromLast();
+    if (issueService) {
+      issueService.addEventListener("change", function(){
+        renderIssueOffers(issueService.value);
+      });
+    }
+
+    if (issueForm) {
+      issueForm.addEventListener("submit", async function(e){
+        e.preventDefault();
+        const phone = (issuePhone && issuePhone.value || "").trim();
+        const ref = (issueRef && issueRef.value || "").trim();
+        const paymentDate = (issuePaymentDate && issuePaymentDate.value || "").trim();
+        const paymentTime = (issuePaymentTime && issuePaymentTime.value || "").trim();
+        const svcId = (issueService && issueService.value || "").trim();
+        const offerIdx = (issueOffer && issueOffer.value || "").trim();
+        const oid = (issueOrderId && issueOrderId.value || "").trim();
+        let msg = (issueMsg && issueMsg.value || "").trim();
+
+        const svc = issueServices.find(s => s._id_str === svcId);
+        const idx = Number(offerIdx);
+        const of = svc && svc.offers ? svc.offers[idx] : null;
+        let cartSnap = [];
+        if (svc && of) {
+          cartSnap = [{
+            serviceId: svc._id_str,
+            serviceName: svc.name,
+            phone: phone,
+            value: of.value_text || "-",
+            value_obj: of.value || null,
+            base_amount: Number(of.amount || 0),
+            amount: Number(of.total || 0)
+          }];
+        }
+
+        if (!phone) { setIssueStatus("Phone number is required.", true); return; }
+        if (!ref) { setIssueStatus("Paystack reference is required.", true); return; }
+        if (!paymentDate) { setIssueStatus("Date of payment is required.", true); return; }
+        if (!paymentTime) { setIssueStatus("Time of payment is required.", true); return; }
+        if (!svcId || !of) { setIssueStatus("Please choose a service and offer.", true); return; }
+
+        if (issueRefTag) {
+          msg = msg ? (msg + " | " + issueRefTag) : issueRefTag;
+        }
+
+        if (issueSubmit) issueSubmit.disabled = true;
+        setIssueStatus("Submitting complaint...", false);
+
+        try {
+          const r = await fetch("/api/store-complaints/" + encodeURIComponent(SLUG), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              phone: phone,
+              paystack_reference: ref,
+              payment_date: paymentDate,
+              payment_time: paymentTime,
+              order_id: oid,
+              message: msg,
+              cart: cartSnap
+            })
+          });
+          const j = await r.json();
+          if (!r.ok || !j.success) {
+            setIssueStatus((j && j.message) ? j.message : "Failed to submit complaint.", true);
+            if (issueSubmit) issueSubmit.disabled = false;
+            return;
+          }
+          setIssueStatus("Complaint submitted. We will review and process it.", false);
+          alert("Thank you , Your issue will be solved Shortly");
+        } catch (_e) {
+          setIssueStatus("Network error. Please try again.", true);
+        }
+        if (issueSubmit) issueSubmit.disabled = false;
+      });
+    }
+
+    if (issueCheckRef) {
+      issueCheckRef.addEventListener("click", async function(){
+        const ref = (issueRef && issueRef.value || "").trim();
+        if (!ref) { setIssueRefStatus("Enter Paystack reference first.", true); return; }
+        setIssueRefStatus("Checking...", false);
+        try {
+          const r = await fetch("/api/store-order-by-ref/" + encodeURIComponent(SLUG) + "?ref=" + encodeURIComponent(ref));
+          const j = await r.json();
+          if (!r.ok || !j.success) {
+            setIssueRefStatus((j && j.message) ? j.message : "Check failed.", true);
+            issueRefTag = "";
+            return;
+          }
+          if (j.exists) {
+            issueRefTag = "There is order with this paystack ref, order id: " + (j.order_id || "");
+            setIssueRefStatus(issueRefTag, true);
+          } else {
+            setIssueRefStatus("No order found for this reference.", false);
+            issueRefTag = "";
+          }
+        } catch (_e) {
+          setIssueRefStatus("Network error while checking.", true);
+          issueRefTag = "";
+        }
+      });
+    }
+
+    async function loadAdminComplaint(){
+      if (!ADMIN_OVERRIDE || !COMPLAINT_ID) return;
+      setIssueStatus("Loading complaint details...", false);
+      try {
+        const r = await fetch("/api/admin/complaints/" + encodeURIComponent(COMPLAINT_ID) + "/snapshot");
+        const j = await r.json();
+        if (!r.ok || !j.success) {
+          setIssueStatus((j && j.message) ? j.message : "Failed to load complaint.", true);
+          return;
+        }
+        if (j.store_slug && j.store_slug !== SLUG) {
+          setIssueStatus("Complaint does not match this store.", true);
+          return;
+        }
+        adminOverrideRef = j.paystack_reference || "";
+        if (issueRef) issueRef.value = adminOverrideRef;
+        if (issuePhone && j.customer_phone) issuePhone.value = j.customer_phone;
+        if (Array.isArray(j.cart_snapshot) && j.cart_snapshot.length) {
+          cart._data = j.cart_snapshot;
+          cart.save();
+          renderCart();
+          fillIssueFromCartSnapshot(j.cart_snapshot);
+        }
+        setIssueStatus("Admin override loaded. You can process without payment.", false);
+        lockProcessUntilPayment();
+      } catch (_e) {
+        setIssueStatus("Failed to load complaint.", true);
+      }
+    }
+
+    cart.load();
+    renderCart();
+    loadAdminComplaint();
+  })();
+</script>
+
+</body>
+</html>

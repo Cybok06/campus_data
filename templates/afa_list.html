@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AFA Registrations</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" href="{{ BRAND_LOGO_URL }}">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    :root { --sea-blue:var(--cd-primary); --soft:var(--cd-bg); --ink:var(--cd-text); }
+    body { background: var(--soft); }
+    .page-card { border:1px solid var(--cd-border); border-radius:14px; background:var(--cd-card); }
+    .status-badge { font-size:.75rem; padding:.35rem .55rem; border-radius:999px; border:1px solid transparent; }
+    .st-pending    { background:var(--cd-warning-10);  color:var(--cd-warning); border-color:rgb(var(--cd-warning-rgb) / 0.35); }
+    .st-completed  { background:var(--cd-success-10);  color:var(--cd-success); border-color:rgb(var(--cd-success-rgb) / 0.30); }
+    .st-failed,
+    .st-rejected   { background:var(--cd-error-10);  color:var(--cd-error); border-color:rgb(var(--cd-error-rgb) / 0.30); }
+    .st-processing,
+    .st-inprogress { background:var(--cd-primary-10); color:var(--cd-primary); border-color:rgb(var(--cd-primary-rgb) / 0.25); }
+    .table > :not(caption) > * > * { vertical-align: middle; }
+  </style>
+</head>
+<body>
+  {% include 'customer_sidebar.html' %}
+
+  <main class="customer-content">
+    <div class="container py-4">
+      <div class="d-flex align-items-center mb-3">
+        <i class="bi bi-card-checklist me-2 fs-4 text-primary"></i>
+        <h3 class="mb-0">My AFA Registrations</h3>
+      </div>
+
+      <div class="page-card p-3 mb-3">
+        <form id="filter-form" class="row g-2 align-items-end">
+          <div class="col-12 col-md-4">
+            <label for="q" class="form-label">Search</label>
+            <input id="q" type="text" class="form-control" placeholder="Search name, phone, Ghana card, location">
+          </div>
+          <div class="col-6 col-md-2">
+            <label for="status" class="form-label">Status</label>
+            <select id="status" class="form-select">
+              <option value="">All</option>
+              <option value="pending">Pending</option>
+              <option value="processing">Processing</option>
+              <option value="completed">Completed</option>
+              <option value="failed">Failed</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-2">
+            <label for="date_from" class="form-label">From</label>
+            <input id="date_from" type="date" class="form-control">
+          </div>
+          <div class="col-6 col-md-2">
+            <label for="date_to" class="form-label">To</label>
+            <input id="date_to" type="date" class="form-control">
+          </div>
+          <div class="col-6 col-md-2">
+            <label for="page_size" class="form-label">Per page</label>
+            <select id="page_size" class="form-select">
+              <option>10</option>
+              <option>25</option>
+              <option>50</option>
+            </select>
+          </div>
+          <div class="col-12 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <button type="button" id="btn-reset" class="btn btn-outline-secondary">Reset</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="page-card p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 48px;">#</th>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Ghana Card</th>
+                <th>DoB</th>
+                <th>Location</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center p-3">
+          <div><span id="results-info" class="text-muted"></span></div>
+          <div class="btn-group">
+            <button class="btn btn-outline-primary btn-sm" id="prev">Prev</button>
+            <button class="btn btn-outline-primary btn-sm" id="next">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% include 'customer_footer.html' %}
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    (function () {
+      var page = 1;
+
+      function statusBadge(st) {
+        var cls = "status-badge ";
+        var txt = (st || "").toLowerCase();
+        if (txt === "completed") cls += "st-completed";
+        else if (txt === "failed" || txt === "rejected") cls += "st-failed";
+        else if (txt === "processing" || txt === "inprogress") cls += "st-processing";
+        else cls += "st-pending";
+        return '<span class="' + cls + '">' + (txt ? (txt.charAt(0).toUpperCase() + txt.slice(1)) : "Pending") + '</span>';
+      }
+
+      function money(n) { return Number(n || 0).toFixed(2); }
+
+      function load() {
+        var q = document.getElementById("q").value || "";
+        var status = document.getElementById("status").value || "";
+        var df = document.getElementById("date_from").value || "";
+        var dt = document.getElementById("date_to").value || "";
+        var pageSize = document.getElementById("page_size").value || "10";
+
+        var params = [
+          "page=" + encodeURIComponent(page),
+          "page_size=" + encodeURIComponent(pageSize)
+        ];
+        if (q) params.push("q=" + encodeURIComponent(q));
+        if (status) params.push("status=" + encodeURIComponent(status));
+        if (df) params.push("date_from=" + encodeURIComponent(df));
+        if (dt) params.push("date_to=" + encodeURIComponent(dt));
+
+        fetch("/api/afa/list?" + params.join("&"))
+          .then(function (r) { return r.json(); })
+          .then(function (res) {
+            if (!res || !res.success) {
+              alert((res && res.error) || "Failed to load data.");
+              return;
+            }
+            var rows = document.getElementById("rows");
+            rows.innerHTML = "";
+            for (var i = 0; i < res.items.length; i++) {
+              var it = res.items[i];
+              var idx = (res.page - 1) * res.page_size + i + 1;
+              var tr = document.createElement("tr");
+              tr.innerHTML =
+                "<td>" + idx + "</td>" +
+                "<td>" + (it.name || "") + "</td>" +
+                "<td>" + (it.phone || "") + "</td>" +
+                "<td>" + (it.ghana_card || "") + "</td>" +
+                "<td>" + (it.dob || "") + "</td>" +
+                "<td>" + (it.location || "") + "</td>" +
+                "<td>GHS " + money(it.amount) + "</td>" +
+                "<td>" + statusBadge(it.status) + "</td>" +
+                "<td>" + (it.created_at_display || "") + "</td>";
+              rows.appendChild(tr);
+            }
+
+            var start = res.total ? ((res.page - 1) * res.page_size + 1) : 0;
+            var end = Math.min(res.total, res.page * res.page_size);
+            document.getElementById("results-info").textContent =
+              "Showing " + start + "-" + end + " of " + res.total;
+
+            document.getElementById("prev").disabled = (res.page <= 1);
+            document.getElementById("next").disabled = (res.page * res.page_size >= res.total);
+          })
+          .catch(function () { alert("Network error."); });
+      }
+
+      document.getElementById("filter-form").addEventListener("submit", function (e) {
+        e.preventDefault(); page = 1; load();
+      });
+      document.getElementById("btn-reset").addEventListener("click", function () {
+        document.getElementById("q").value = "";
+        document.getElementById("status").value = "";
+        document.getElementById("date_from").value = "";
+        document.getElementById("date_to").value = "";
+        page = 1; load();
+      });
+      document.getElementById("page_size").addEventListener("change", function () {
+        page = 1; load();
+      });
+      document.getElementById("prev").addEventListener("click", function () {
+        if (page > 1) { page -= 1; load(); }
+      });
+      document.getElementById("next").addEventListener("click", function () {
+        page += 1; load();
+      });
+
+      load(); // initial
+    })();
+  </script>
+</body>
+</html>

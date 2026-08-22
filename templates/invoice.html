@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ BRAND_NAME }} — Invoice {{ order["order_id"] }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/css/theme.css">
+
+  <!-- Bootstrap Icons for home icon -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+
+  <link rel="icon" type="image/png"
+        href="{{ BRAND_LOGO_URL }}">
+
+  <style>
+    :root{
+      --ink:var(--cd-text);
+      --muted:var(--cd-muted);
+      --soft:var(--cd-bg);
+      --card:var(--cd-card);
+      --accent:var(--cd-primary);
+      --accent-soft:var(--cd-primary-10);
+      --success:var(--cd-success);
+      --danger:var(--cd-error);
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      background: radial-gradient(circle at top, var(--cd-primary-10) 0, var(--cd-bg) 40%, var(--cd-soft-violet) 100%);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color:var(--ink);
+    }
+
+    .invoice-modal{
+      width:100%;
+      max-width:480px;
+      background:var(--card);
+      border-radius:24px;
+      box-shadow:0 18px 45px rgb(var(--cd-deep-rgb) / 0.18);
+      padding:22px 18px 18px;
+      position:relative;
+    }
+
+    @media (min-width:576px){
+      .invoice-modal{ padding:26px 24px 22px; }
+    }
+
+    .modal-header-row{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:10px;
+    }
+
+    .modal-title-small{
+      font-size:.9rem;
+      font-weight:600;
+      color:var(--ink);
+    }
+
+    .btn-close-x{
+      border:none;
+      background:transparent;
+      font-size:1.1rem;
+      line-height:1;
+      cursor:pointer;
+      color:var(--cd-muted);
+    }
+    .btn-close-x:hover{
+      color:var(--cd-muted);
+    }
+
+    .status-icon-wrap{
+      display:flex;
+      justify-content:center;
+      margin:6px 0 2px;
+    }
+    .status-icon-img{
+      max-width:180px;
+      width:70%;
+      height:auto;
+      display:block;
+    }
+
+    .main-title{
+      text-align:center;
+      font-size:1.25rem;
+      font-weight:700;
+      margin-bottom:4px;
+    }
+    .subtitle{
+      text-align:center;
+      font-size:.9rem;
+      color:var(--muted);
+      margin-bottom:14px;
+    }
+
+    .info-card{
+      background:var(--cd-bg);
+      border-radius:16px;
+      padding:12px 14px;
+      font-size:.85rem;
+      margin-bottom:16px;
+    }
+    .info-row{
+      display:flex;
+      flex-wrap:wrap;
+      row-gap:10px;
+    }
+    .info-item{
+      width:50%;
+      padding:4px 4px;
+    }
+    .info-label{
+      font-size:.75rem;
+      color:var(--muted);
+    }
+    .info-value{
+      font-weight:600;
+      margin-top:2px;
+      white-space:nowrap;
+    }
+
+    .section-label{
+      font-size:.85rem;
+      font-weight:600;
+      margin-bottom:6px;
+    }
+
+    .item-list{
+      list-style:none;
+      padding:0;
+      margin:0 0 4px;
+      font-size:.85rem;
+    }
+    .item-list li{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      padding:6px 0;
+      border-bottom:1px solid var(--cd-border);
+    }
+    .item-left{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+    .item-service{
+      font-weight:500;
+    }
+    .item-meta{
+      font-size:.76rem;
+      color:var(--muted);
+    }
+    .item-amount{
+      font-weight:600;
+      white-space:nowrap;
+      font-size:.86rem;
+    }
+
+    .total-row{
+      display:flex;
+      justify-content:space-between;
+      font-size:.9rem;
+      font-weight:600;
+      padding-top:6px;
+    }
+
+    .actions-row{
+      margin-top:18px;
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+    }
+    .btn-soft{
+      flex:1 1 0;
+      min-width:0;
+      border-radius:999px;
+      border:1px solid var(--cd-border);
+      padding:8px 14px;
+      font-size:.9rem;
+      background:var(--cd-bg);
+      cursor:pointer;
+      text-align:center;
+      text-decoration:none;
+      color:var(--cd-text);
+    }
+    .btn-primary{
+      flex:1 1 0;
+      min-width:0;
+      border-radius:999px;
+      border:none;
+      padding:9px 14px;
+      font-size:.9rem;
+      background:var(--cd-primary);
+      color:var(--cd-card);
+      cursor:pointer;
+      text-align:center;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      box-shadow:0 10px 25px rgb(var(--cd-primary-rgb) / 0.35);
+    }
+    .btn-primary:hover{
+      filter:brightness(.97);
+      color:var(--cd-card);
+    }
+
+    .btn-whatsapp{
+      flex:1 1 100%;
+      border-radius:999px;
+      border:none;
+      padding:9px 14px;
+      font-size:.9rem;
+      background:var(--cd-success);
+      color:var(--cd-card);
+      cursor:pointer;
+      text-align:center;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      box-shadow:0 10px 25px rgb(var(--cd-success-rgb) / 0.35);
+    }
+    .btn-whatsapp:hover{
+      filter:brightness(.97);
+      color:var(--cd-card);
+    }
+  </style>
+</head>
+<body>
+<div class="invoice-modal">
+
+  <!-- Header row -->
+  <div class="modal-header-row">
+    {% set item_count = order["items"]|length if order["items"] is defined else 0 %}
+    <div class="modal-title-small">
+      Your Cart ({{ item_count }})
+    </div>
+
+    <!-- Close goes back to homepage -->
+    <button class="btn-close-x" onclick="window.location.href='/customer/dashboard'">&times;</button>
+  </div>
+
+  <!-- Success illustration -->
+  <div class="status-icon-wrap">
+    <img
+      src="https://res.cloudinary.com/dcmewvlyx/image/upload/v1764665465/Successful_purchase-pana_mxuirj.png"
+      alt="Payment Successful"
+      class="status-icon-img">
+  </div>
+
+ 
+
+  <!-- Info card (Order code, Date, Payment method, Total) -->
+  <div class="info-card">
+    <div class="info-row">
+      <div class="info-item">
+        <div class="info-label">Order Code:</div>
+        <div class="info-value">
+          {{ order["order_id"] }}
+        </div>
+      </div>
+
+      <div class="info-item">
+        <div class="info-label">Date:</div>
+        <div class="info-value">
+          {% if order["created_at"] %}
+            {{ order["created_at"].strftime("%Y-%m-%d %H:%M:%S") }}
+          {% else %}-{% endif %}
+        </div>
+      </div>
+
+      <div class="info-item">
+        <div class="info-label">Payment Method:</div>
+        <div class="info-value">
+          {{ order.paid_from|replace("_"," ")|title if order.paid_from else "Wallet Payment" }}
+        </div>
+      </div>
+
+      <div class="info-item">
+        <div class="info-label">Total Amount:</div>
+        <div class="info-value">
+          GHS {{ "%.2f"|format(order.total_amount or order.charged_amount or 0) }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Order items -->
+  <div class="section-label">Order Items:</div>
+  <ul class="item-list">
+    {% for item in order["items"] %}
+      <li>
+        <div class="item-left">
+          <div class="item-service">
+            {{ item.serviceName or "Service" }}
+          </div>
+          <div class="item-meta">
+            {% if item.phone %}{{ item.phone }}{% endif %}
+            {% if item.value or (item.value_obj and item.value_obj.get("volume")) %}
+              •
+              {% if item.value %}
+                {{ item.value }}
+              {% elif item.value_obj and item.value_obj.get("volume") %}
+                {{ item.value_obj["volume"] }}
+              {% endif %}
+            {% endif %}
+          </div>
+        </div>
+        <div class="item-amount">
+          GHS {{ "%.2f"|format(item.amount or 0) }}
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+
+  <div class="total-row">
+    <span>Total</span>
+    <span>GHS {{ "%.2f"|format(order.total_amount or order.charged_amount or 0) }}</span>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions-row">
+    <!-- WhatsApp share -->
+    <button type="button" class="btn-whatsapp" id="btn-whatsapp-share">
+      <i class="bi bi-whatsapp"></i>
+      <span>Share via WhatsApp</span>
+    </button>
+
+    <a href="/customer/dashboard" class="btn-soft">Close</a>
+
+    <a href="/customer/dashboard" class="btn-primary">
+      <i class="bi bi-house-door-fill"></i>
+      <span>Back to Homepage</span>
+    </a>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const btn = document.getElementById("btn-whatsapp-share");
+    if (!btn) return;
+
+    // Full invoice URL for sharing
+    const invoiceUrl = "{{ url_for('checkout.invoice_view', order_id=order['order_id'], _external=True) }}";
+    const message = `Here is my {{ BRAND_NAME }} invoice ({{ order["order_id"] }}): ${invoiceUrl}`;
+
+    btn.addEventListener("click", function () {
+      const encoded = encodeURIComponent(message);
+      const waUrl = "https://wa.me/?text=" + encoded;
+
+      // Open WhatsApp (web or app)
+      window.open(waUrl, "_blank");
+    });
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin • User Wallet Balances</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/theme.css">
+
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <link rel="icon" type="image/png" href="{{ BRAND_LOGO_URL }}">
+
+  <style>
+    :root {
+      --ink: var(--cd-text);
+      --primary: var(--cd-primary);
+      --primary-soft: var(--cd-primary-10);
+      --danger-soft: var(--cd-error-10);
+      --success-soft: var(--cd-success-10);
+      --muted: var(--cd-muted);
+      --card-bg: var(--cd-card);
+      --card-border: var(--cd-border);
+    }
+
+    body {
+      background: radial-gradient(circle at top left, var(--cd-primary-10) 0, var(--cd-bg) 40%, var(--cd-soft-violet) 100%);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .content-with-sidebar {
+      margin-left: 260px; /* match your admin_sidebar width if any */
+    }
+
+    @media (max-width: 992px) {
+      .content-with-sidebar {
+        margin-left: 0;
+      }
+    }
+
+    .page-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .page-title {
+      font-weight: 700;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+
+    .page-title-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--primary), var(--cd-success));
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      box-shadow: 0 10px 20px rgb(var(--cd-deep-rgb) / 0.18);
+    }
+
+    .search-wrapper {
+      max-width: 360px;
+      width: 100%;
+    }
+
+    .search-input-group .form-control {
+      border-radius: 999px;
+      padding-left: 2.5rem;
+      border-color: var(--cd-border);
+      box-shadow: 0 1px 2px rgb(var(--cd-deep-rgb) / 0.05);
+    }
+
+    .search-input-group .form-control:focus {
+      box-shadow: 0 0 0 .16rem rgb(var(--cd-primary-rgb) / 0.35);
+      border-color: var(--primary);
+    }
+
+    .search-input-group .search-icon {
+      position: absolute;
+      left: .9rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .balance-card {
+      position: relative;
+      border-radius: 1.1rem;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 1.1rem 1.15rem;
+      box-shadow: 0 18px 35px rgb(var(--cd-deep-rgb) / 0.06);
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: .9rem;
+    }
+
+    .balance-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 22px 40px rgb(var(--cd-deep-rgb) / 0.12);
+      border-color: rgb(var(--cd-primary-rgb) / 0.45);
+    }
+
+    .user-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--cd-accent), var(--cd-primary));
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.3rem;
+      box-shadow: 0 10px 18px rgb(var(--cd-primary-rgb) / 0.35);
+    }
+
+    .user-meta small {
+      display: block;
+      color: var(--muted);
+      font-size: .78rem;
+    }
+
+    .pill-tag {
+      padding: .2rem .6rem;
+      border-radius: 999px;
+      font-size: .72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .pill-tag-wallet {
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+
+    .balance-amount-label {
+      font-size: .8rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .balance-amount {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1.1;
+    }
+
+    .balance-amount small {
+      font-size: .9rem;
+      color: var(--muted);
+      font-weight: 500;
+      margin-left: .25rem;
+    }
+
+    .updated-at {
+      font-size: .72rem;
+      color: var(--muted);
+    }
+
+    .action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .6rem;
+      align-items: stretch;
+    }
+
+    .mini-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .35rem;
+      align-items: center;
+      padding: .45rem .45rem;
+      border-radius: .9rem;
+      background: var(--cd-bg);
+      border: 1px dashed var(--cd-border);
+      flex: 1 1 200px;
+    }
+
+    .mini-form input[type="number"],
+    .mini-form input[type="text"] {
+      flex: 1 1 70px;
+      min-width: 0;
+    }
+
+    .mini-form .btn {
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: .25rem;
+      border-radius: 999px;
+    }
+
+    .btn-deposit {
+      background: var(--cd-success);
+      border-color: var(--cd-success);
+    }
+    .btn-deposit:hover {
+      background: var(--cd-success);
+      border-color: var(--cd-success);
+    }
+
+    .btn-withdraw {
+      background: var(--cd-error);
+      border-color: var(--cd-error);
+    }
+    .btn-withdraw:hover {
+      background: var(--cd-error);
+      border-color: var(--cd-error);
+    }
+
+    .history-btn {
+      border-radius: 999px;
+      padding-inline: .8rem;
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      font-size: .78rem;
+    }
+
+    .history-btn i {
+      font-size: .9rem;
+    }
+
+    .card-footer-inline {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: .5rem;
+      margin-top: .2rem;
+    }
+
+    .badge-balance {
+      font-size: .72rem;
+      border-radius: 999px;
+      background: var(--cd-primary-10);
+      color: var(--cd-primary);
+      padding: .22rem .55rem;
+    }
+
+    @media (max-width: 576px) {
+      .balance-card {
+        padding: 1rem;
+      }
+      .balance-amount {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  {% include 'admin_sidebar.html' %}
+
+  <main class="content-with-sidebar">
+    <div class="container py-4 py-lg-5">
+
+      <div class="page-header mb-4 mb-lg-5">
+        <div>
+          <h1 class="page-title mb-1">
+            <span class="page-title-icon">
+              <i class="bi bi-wallet2"></i>
+            </span>
+            <span>Wallet Balances</span>
+          </h1>
+          <div class="text-muted small">
+            Credit / debit user wallets and inspect full audit history.
+          </div>
+        </div>
+
+        <div class="search-wrapper">
+          <div class="position-relative search-input-group">
+            <i class="bi bi-search search-icon"></i>
+            <input
+              type="text"
+              id="balanceSearch"
+              class="form-control form-control-lg"
+              placeholder="Search by name or phone…" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <!-- Balance Cards -->
+      <div class="row g-3 g-lg-4" id="balanceCards">
+        {% for b in balances %}
+        <div class="col-xl-4 col-lg-6 col-md-6 balance-entry">
+          <div class="balance-card">
+
+            <!-- Top row: avatar + user meta + balance -->
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+              <div class="d-flex align-items-center gap-3">
+                <div class="user-avatar">
+                  <i class="bi bi-person-fill"></i>
+                </div>
+                <div class="user-meta">
+                  <div class="fw-semibold name">
+                    {{ b.user.first_name }} {{ b.user.last_name }}
+                  </div>
+                  <small class="phone">
+                    <i class="bi bi-telephone-outbound me-1"></i>{{ b.user.phone }}
+                  </small>
+                  <small class="mt-1">
+                    <span class="pill-tag pill-tag-wallet">
+                      <i class="bi bi-credit-card-2-front me-1"></i> Wallet
+                    </span>
+                  </small>
+                </div>
+              </div>
+
+              <div class="text-end">
+                <div class="balance-amount-label">Balance</div>
+                <div class="balance-amount">
+                  {{ '%.2f'|format(b.amount) }}
+                  <small>{{ b.currency }}</small>
+                </div>
+                {% if b.updated_at %}
+                  <div class="updated-at mt-1">
+                    <i class="bi bi-clock-history me-1"></i>
+                    Updated {{ b.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Deposit / Withdraw row ONLY -->
+            <div class="action-row mt-2">
+              <!-- Deposit -->
+              <form
+                method="POST"
+                action="{{ url_for('admin_balance.deposit_balance', balance_id=b._id) }}"
+                class="mini-form">
+                <div class="input-group input-group-sm flex-grow-1">
+                  <span class="input-group-text">
+                    <i class="bi bi-arrow-down-circle"></i>
+                  </span>
+                  <input
+                    type="number"
+                    name="amount"
+                    step="0.01"
+                    min="0.01"
+                    class="form-control form-control-sm"
+                    required
+                    placeholder="Deposit amount" />
+                </div>
+                <input
+                  type="text"
+                  name="note"
+                  class="form-control form-control-sm"
+                  placeholder="Note" />
+                <select name="gateway" class="form-select form-select-sm">
+                  <option value="admin_wallet" selected>admin_wallet</option>
+                  <option value="manual">manual</option>
+                  <option value="paystack_inline">paystack_inline</option>
+                  <option value="paystack_transfer">paystack_transfer</option>
+                  <option value="other">other</option>
+                </select>
+                <button type="submit" class="btn btn-sm btn-success btn-deposit" title="Deposit">
+                  <i class="bi bi-plus-lg"></i><span>Deposit</span>
+                </button>
+              </form>
+
+              <!-- Withdraw -->
+              <form
+                method="POST"
+                action="{{ url_for('admin_balance.withdraw_balance', balance_id=b._id) }}"
+                class="mini-form">
+                <div class="input-group input-group-sm flex-grow-1">
+                  <span class="input-group-text">
+                    <i class="bi bi-arrow-up-circle"></i>
+                  </span>
+                  <input
+                    type="number"
+                    name="amount"
+                    step="0.01"
+                    min="0.01"
+                    class="form-control form-control-sm"
+                    required
+                    placeholder="Withdraw amount" />
+                </div>
+                <input
+                  type="text"
+                  name="note"
+                  class="form-control form-control-sm"
+                  placeholder="Note" />
+                <select name="gateway" class="form-select form-select-sm">
+                  <option value="admin_wallet" selected>admin_wallet</option>
+                  <option value="manual">manual</option>
+                  <option value="paystack_inline">paystack_inline</option>
+                  <option value="paystack_transfer">paystack_transfer</option>
+                  <option value="other">other</option>
+                </select>
+                <button type="submit" class="btn btn-sm btn-danger btn-withdraw" title="Withdraw">
+                  <i class="bi bi-dash-lg"></i><span>Withdraw</span>
+                </button>
+              </form>
+            </div>
+
+            <!-- Footer: history + tag -->
+            <div class="card-footer-inline mt-2">
+              <button
+                class="btn btn-outline-secondary btn-sm history-btn"
+                data-bs-toggle="modal"
+                data-bs-target="#historyModal"
+                data-user-id="{{ b.user._id }}"
+                data-user-name="{{ b.user.first_name }} {{ b.user.last_name }}">
+                <i class="bi bi-activity"></i>
+                <span>View history</span>
+              </button>
+
+              <span class="badge-balance">
+                <i class="bi bi-shield-check me-1"></i>
+                Audit logged
+              </span>
+            </div>
+
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% if balances|length == 0 %}
+        <p class="text-muted text-center mt-5">
+          No balances available yet.
+        </p>
+      {% endif %}
+    </div>
+  </main>
+
+  <!-- History Modal -->
+  <div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="bi bi-activity me-2 text-primary"></i>
+            Balance History
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+
+          <div id="historyLoading" class="text-center py-4 d-none">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div class="mt-2 text-muted small">Loading history…</div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-sm align-middle" id="historyTable">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:120px;">When</th>
+                  <th style="width:110px;">Action</th>
+                  <th style="width:130px;" class="text-end">Δ Amount</th>
+                  <th class="text-end" style="width:160px;">Before → After</th>
+                  <th style="width:140px;">By</th>
+                  <th>Note</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div id="noHistory" class="text-muted d-none mt-2 small">
+            No history yet for this user.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS + Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Search filter (client-side)
+    document.getElementById("balanceSearch").addEventListener("keyup", function () {
+      const keyword = this.value.toLowerCase();
+      document.querySelectorAll(".balance-entry").forEach(card => {
+        const name = card.querySelector(".name")?.innerText.toLowerCase() || "";
+        const phone = card.querySelector(".phone")?.innerText.toLowerCase() || "";
+        card.style.display = (name.includes(keyword) || phone.includes(keyword)) ? "" : "none";
+      });
+    });
+
+    // History modal loader
+    const historyModal = document.getElementById("historyModal");
+    const historyTableBody = () => document.querySelector("#historyTable tbody");
+    const loadingEl = () => document.getElementById("historyLoading");
+    const emptyEl = () => document.getElementById("noHistory");
+
+    historyModal.addEventListener("show.bs.modal", (ev) => {
+      const btn = ev.relatedTarget;
+      const userId = btn?.getAttribute("data-user-id");
+      const userName = btn?.getAttribute("data-user-name") || "User";
+      historyModal.querySelector(".modal-title").innerHTML =
+        '<i class="bi bi-activity me-2 text-primary"></i>Balance History — ' + userName;
+
+      historyTableBody().innerHTML = "";
+      loadingEl().classList.remove("d-none");
+      emptyEl().classList.add("d-none");
+      emptyEl().textContent = "No history yet for this user.";
+
+      if (!userId) {
+        loadingEl().classList.add("d-none");
+        emptyEl().classList.remove("d-none");
+        emptyEl().textContent = "Invalid user.";
+        return;
+      }
+
+      fetch(`/admin/balances/history/${userId}`)
+        .then(r => r.json())
+        .then(data => {
+          loadingEl().classList.add("d-none");
+
+          if (!data.success) {
+            emptyEl().classList.remove("d-none");
+            emptyEl().textContent = data.error || "Couldn't load history.";
+            return;
+          }
+
+          if (!data.logs || data.logs.length === 0) {
+            emptyEl().classList.remove("d-none");
+            return;
+          }
+
+          const rows = data.logs.map(log => {
+            const delta = Number(log.delta || 0);
+            const sign = delta >= 0 ? "+" : "–";
+            const absDelta = Math.abs(delta).toFixed(2);
+            const before = Number(log.amount_before || 0).toFixed(2);
+            const after = Number(log.amount_after || 0).toFixed(2);
+            const actionBadgeClass =
+              log.action === "deposit" ? "bg-success-subtle text-success" :
+              log.action === "withdraw" ? "bg-danger-subtle text-danger" :
+              "bg-secondary-subtle text-secondary";
+
+            return `
+              <tr>
+                <td class="text-nowrap small">${log.created_at || ""}</td>
+                <td>
+                  <span class="badge rounded-pill ${actionBadgeClass}">
+                    ${log.action || "-"}
+                  </span>
+                </td>
+                <td class="text-end small">
+                  ${sign}${absDelta} ${log.currency || "GHS"}
+                </td>
+                <td class="text-end small">
+                  ${before} → ${after} ${log.currency || "GHS"}
+                </td>
+                <td class="small">
+                  ${log.actor_name || "admin"}
+                </td>
+                <td class="small">
+                  ${log.note || ""}
+                </td>
+              </tr>
+            `;
+          }).join("");
+
+          historyTableBody().innerHTML = rows;
+        })
+        .catch(() => {
+          loadingEl().classList.add("d-none");
+          emptyEl().classList.remove("d-none");
+          emptyEl().textContent = "Couldn't load history.";
+        });
+    });
+  </script>
+</body>
+</html>

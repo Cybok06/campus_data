@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Services - Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" href="{{ BRAND_LOGO_URL }}">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/css/theme.css">
+
+  <style>
+    :root { --sea-blue:var(--cd-primary); }
+
+    @media (min-width: 992px) { .admin-content { margin-left: 260px; padding: 2rem; } }
+    @media (max-width: 991px) { .admin-content { margin-top: 1rem; padding: 1rem; } }
+
+    .btn-seablue { background-color: var(--sea-blue); border-color: var(--sea-blue); color:var(--cd-card); }
+    .btn-seablue:hover { filter:brightness(0.95); color:var(--cd-card); }
+    .btn-blur-blue {
+      background: rgba(30, 144, 255, 0.25);
+      border-color: rgba(30, 144, 255, 0.35);
+      color: #000;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      box-shadow: 0 10px 24px rgba(30, 144, 255, 0.18);
+    }
+    .btn-blur-blue:hover {
+      background: rgba(30, 144, 255, 0.32);
+      border-color: rgba(30, 144, 255, 0.45);
+      color: #000;
+    }
+    .small-muted { font-size:.9rem; color:var(--cd-muted); }
+
+    .svc-card-img { width:100%; height:140px; object-fit:cover; border-radius:12px; background:var(--cd-bg); }
+    .svc-chip { background:var(--cd-bg); border:1px solid var(--cd-border); border-radius:999px; padding:.2rem .55rem; font-size:.8rem; }
+
+    .svc-badge { font-size:.75rem; padding:.35rem .5rem; border-radius:999px; border:1px solid transparent; display:inline-block; }
+    .svc-type-API { background:var(--cd-success-10); color:var(--cd-success); border-color:rgb(var(--cd-success-rgb) / 0.30); }
+    .svc-type-OFF { background:var(--cd-error-10); color:var(--cd-error); border-color:rgb(var(--cd-error-rgb) / 0.30); }
+    .svc-status-OPEN { background:var(--cd-success-10); color:var(--cd-success); border-color:rgb(var(--cd-success-rgb) / 0.30); }
+    .svc-status-CLOSED { background:var(--cd-error-10); color:var(--cd-error); border-color:rgb(var(--cd-error-rgb) / 0.30); }
+    .svc-avail-AVAILABLE { background:var(--cd-primary-10); color:var(--cd-primary); border-color:rgb(var(--cd-primary-rgb) / 0.30); }
+    .svc-avail-OUT_OF_STOCK { background:var(--cd-warning-10); color:var(--cd-warning); border-color:rgb(var(--cd-warning-rgb) / 0.35); }
+
+    /* Sticky header/footer for long forms */
+    .modal-header { position: sticky; top: 0; background: var(--cd-card); z-index: 3; border-bottom: 1px solid rgb(var(--cd-deep-rgb) /.125); }
+    .modal-footer { position: sticky; bottom: 0; background: var(--cd-card); z-index: 3; border-top: 1px solid rgb(var(--cd-deep-rgb) /.125); }
+
+    .img-preview-lg { width:100%; height:220px; object-fit:cover; border-radius:10px; background:var(--cd-bg); }
+
+    .offers-grid thead th { position: sticky; top: 0; background: var(--cd-card); z-index: 2; }
+    .offers-grid input { min-width: 110px; }
+    .offers-grid .row-actions { width: 48px; }
+    .paste-hint { font-size: .85rem; color:var(--cd-muted); }
+
+    /* Fullscreen modal refinements */
+    .modal-fullscreen .modal-content{
+      border-radius: 0;
+    }
+    .tab-pane .table-responsive{
+      max-height: calc(100vh - 320px);
+    }
+
+    /* Edit modal: cleaner layout, black text */
+    .modal-content,
+    .modal-content * {
+      color: #000;
+    }
+    .modal-content .text-muted,
+    .modal-content .small-muted,
+    .modal-content .text-secondary {
+      color: #000 !important;
+      opacity: 0.8;
+    }
+    .modal-content .form-control,
+    .modal-content .form-select,
+    .modal-content .form-check-label {
+      color: #000;
+    }
+    .modal-content .form-control::placeholder {
+      color: #000;
+      opacity: 0.5;
+    }
+    .modal-content .nav-tabs .nav-link {
+      color: #000;
+      border-color: var(--cd-border);
+    }
+    .modal-content .nav-tabs .nav-link.active {
+      color: #000;
+      font-weight: 600;
+    }
+    .modal-content .table {
+      color: #000;
+    }
+    .modal-content h5,
+    .modal-content h6 {
+      color: #000;
+    }
+    .modal-content .btn-close {
+      filter: none;
+    }
+    .modal-content .modal-body .row.g-3 {
+      row-gap: 1.25rem;
+    }
+    .modal-content .tab-content {
+      border-radius: 0 0 0.5rem 0.5rem;
+    }
+  </style>
+</head>
+
+<body>
+  {% include 'admin_sidebar.html' %}
+
+  <div class="admin-content">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+      <h2 class="mb-0">Services</h2>
+      <div class="d-flex gap-2">
+        <input id="svcSearch" type="text" class="form-control" placeholder="Search services...">
+        <select id="typeFilter" class="form-select" style="max-width:180px">
+          <option value="">All Types</option>
+          <option value="API">API (On)</option>
+          <option value="OFF">OFF</option>
+        </select>
+        <!-- Add Service button removed per request -->
+      </div>
+    </div>
+
+    <div id="servicesGrid" class="row g-3">
+      {% for svc in services %}
+        {% set sid = svc._id_str %}
+        {% set count_default = svc.offers|length if svc.offers else 0 %}
+        {% set count_store = svc.store_offers|length if svc.store_offers else 0 %}
+        {% set t = (svc.type or 'API') %}
+        {% set s = (svc.status or 'OPEN') %}
+        {% set a = (svc.availability or 'AVAILABLE') %}
+        {% set svc_name_lc = (svc.name or '')|lower %}
+        {% set is_mtn_normal = svc_name_lc == 'mtn normal' %}
+        {% set is_mtn_express = svc_name_lc == 'mtn express' %}
+        {% set is_telecel = 'telecel' in svc_name_lc or 'vodafone' in svc_name_lc %}
+        {% set provider_val = (svc.provider or 'portal02') %}
+        {% set provider_label = 'Portal-02' if provider_val == 'portal02' else 'DataConnect' if provider_val == 'dataconnect' else 'CodeCraft' if provider_val == 'codecraft' else 'DataKazina' if provider_val == 'datakazina' else 'SKPlug' if provider_val == 'skplug' else 'BundlePortal' if provider_val == 'bundleportal' else provider_val %}
+
+        <div class="col-12 col-sm-6 col-lg-4 col-xxl-3 svc-card"
+             data-sid="{{ sid }}"
+             data-name="{{ (svc.name or '')|lower }}"
+             data-type="{{ t }}"
+             data-status="{{ s }}"
+             data-availability="{{ a }}">
+          <div class="card shadow-sm h-100">
+            <div class="card-body d-flex flex-column">
+              <img src="{{ svc.image_url or '' }}" alt="" class="svc-card-img mb-3">
+
+              <div class="d-flex align-items-start justify-content-between">
+                <div class="me-2">
+                  <div class="h6 mb-1 text-break">{{ svc.name }}</div>
+                  <div class="d-flex flex-wrap gap-2">
+                    <span class="svc-chip">Default Offers: {{ count_default }}</span>
+                    <span class="svc-chip">Store Offers: {{ count_store }}</span>
+                    {% if is_mtn_normal or is_mtn_express or is_telecel %}
+                      <span class="svc-chip" data-role="provider-chip">Provider: {{ provider_label }}</span>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="text-end">
+                  <div class="mb-1">
+                    <span class="svc-badge {{ 'svc-status-OPEN' if s=='OPEN' else 'svc-status-CLOSED' }}" data-role="status-badge">{{ s }}</span>
+                  </div>
+                  <div>
+                    <span class="svc-badge {{ 'svc-avail-AVAILABLE' if a=='AVAILABLE' else 'svc-avail-OUT_OF_STOCK' }}" data-role="availability-badge">{{ a }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="small text-muted mt-2">
+                Created: {{ svc.created_at.strftime('%Y-%m-%d %H:%M') if svc.created_at else '-' }}
+              </div>
+
+              <div class="mt-3 d-grid gap-2">
+                <div class="btn-group" role="group">
+                  <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editServiceModal-{{ sid }}">Edit</button>
+                  <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#offersModal-{{ sid }}">Offers</button>
+
+                  <!-- NEW: Store Prices quick open (same edit modal but will jump to Store tab) -->
+                  <button class="btn btn-sm btn-outline-success"
+                          data-bs-toggle="modal"
+                          data-bs-target="#editServiceModal-{{ sid }}"
+                          onclick="openStoreTab('{{ sid }}')">
+                    Store Prices
+                  </button>
+
+                  <button class="btn btn-sm btn-outline-dark" data-bs-toggle="modal" data-bs-target="#setCustomerPricingModal-{{ sid }}">Customer Pricing</button>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+
+      {% if services|length == 0 %}
+        <div class="col-12 text-center text-muted">No services found.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Add Service -->
+  <div class="modal fade" id="addServiceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down modal-dialog-centered modal-dialog-xxl">
+      <div class="modal-content">
+        <form method="post" action="{{ url_for('admin_services.create_service') }}">
+          <div class="modal-header">
+            <h5 class="modal-title">Add Service</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+
+          <div class="modal-body">
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <img id="create_img_preview" class="img-preview-lg mb-2" src="" alt="">
+                <input type="hidden" name="image_url" id="create_image_url">
+                <div class="d-grid gap-2">
+                  <input type="file" id="create_image_file" accept="image/*" class="form-control">
+                  <small class="small-muted">Upload from your device (stored on server)</small>
+                  <div id="create_upload_status" class="small-muted"></div>
+                </div>
+              </div>
+
+              <div class="col-md-8">
+                <label class="form-label">Service Name</label>
+                <input type="text" name="service_name" class="form-control" placeholder="e.g., MTN" required>
+
+                <div class="row g-3 mt-1">
+                  <div class="col-sm-6">
+                    <label class="form-label">Store Pricing</label>
+                    <div class="form-check mt-2">
+                      <input class="form-check-input" type="checkbox" id="create_copy_default_to_store" name="copy_default_to_store" value="1" checked>
+                      <label class="form-check-label" for="create_copy_default_to_store">
+                        Create Store Prices same as Default
+                      </label>
+                    </div>
+                    <small class="small-muted">You can later edit Store Prices separately.</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <hr>
+
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="mb-0">Default Offers</h6>
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-secondary add-offer-btn" data-target-container="#create_offers_tbody">+ Add</button>
+                <button type="button" class="btn btn-sm btn-outline-dark" data-paste-target="#create_offers_tbody" data-name-prefix="offers">Paste CSV</button>
+              </div>
+            </div>
+
+            <div class="table-responsive" style="max-height: 60vh;">
+              <table class="table table-sm offers-grid align-middle">
+                <thead>
+                      <tr>
+                        <th style="width: 180px;">Amount</th>
+                        <th style="width: 180px;">Customer Price</th>
+                        <th>Value</th>
+                        <th class="row-actions"></th>
+                      </tr>
+                </thead>
+                <tbody id="create_offers_tbody">
+                  <!-- seeded by JS -->
+                </tbody>
+              </table>
+            </div>
+            <div class="paste-hint">Tip: Paste rows like <code>20,18,1GB</code> (Amount,Customer Price,Value).</div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-seablue">Save Service</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {% for svc in services %}
+    {% set sid = svc._id_str %}
+    {% set count_default = svc.offers|length if svc.offers else 0 %}
+    {% set count_store = svc.store_offers|length if svc.store_offers else 0 %}
+    {% set svc_name_lc = (svc.name or '')|lower %}
+    {% set is_mtn_normal = svc_name_lc == 'mtn normal' %}
+    {% set is_mtn_express = svc_name_lc == 'mtn express' %}
+    {% set is_telecel = 'telecel' in svc_name_lc or 'vodafone' in svc_name_lc %}
+    {% set provider_val = (svc.provider or 'portal02') %}
+    {% set provider_label = 'Portal-02' if provider_val == 'portal02' else 'DataConnect' if provider_val == 'dataconnect' else 'CodeCraft' if provider_val == 'codecraft' else 'DataKazina' if provider_val == 'datakazina' else 'SKPlug' if provider_val == 'skplug' else 'BundlePortal' if provider_val == 'bundleportal' else provider_val %}
+
+    <!-- Offers viewer -->
+    <div class="modal fade" id="offersModal-{{ sid }}" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down modal-dialog-centered modal-dialog-xxl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Offers — {{ svc.name }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-12 col-lg-6">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h6 class="mb-0">Default Offers ({{ count_default }})</h6>
+                </div>
+
+                {% if count_default > 0 %}
+                  <div class="table-responsive">
+                    <table class="table table-sm table-striped align-middle">
+                      <thead><tr><th style="width:160px;">Amount</th><th>Value</th></tr></thead>
+                      <tbody>
+                        {% for of in svc.offers %}
+                          <tr>
+                            <td>{{ of.amount if of.amount is not none else "-" }}</td>
+                            <td class="text-break">{{ of.value_text | default(of.value) | default("-") }}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                {% else %}
+                  <div class="text-muted">No default offers.</div>
+                {% endif %}
+              </div>
+
+              <div class="col-12 col-lg-6">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h6 class="mb-0">Store Offers ({{ count_store }})</h6>
+                </div>
+
+                {% if count_store > 0 %}
+                  <div class="table-responsive">
+                    <table class="table table-sm table-striped align-middle">
+                      <thead><tr><th style="width:160px;">Amount</th><th>Value</th></tr></thead>
+                      <tbody>
+                        {% for of in svc.store_offers %}
+                          <tr>
+                            <td>{{ of.amount if of.amount is not none else "-" }}</td>
+                            <td class="text-break">{{ of.value_text | default(of.value) | default("-") }}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                {% else %}
+                  <div class="text-muted">No store offers (store will fallback to default unless you set store pricing).</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-outline-primary"
+                    data-bs-target="#editServiceModal-{{ sid }}"
+                    data-bs-toggle="modal"
+                    data-bs-dismiss="modal">
+              Edit Pricing
+            </button>
+            <button class="btn btn-seablue" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Service (FULLSCREEN) -->
+    <div class="modal fade" id="editServiceModal-{{ sid }}" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-fullscreen modal-dialog-scrollable">
+        <div class="modal-content">
+          <form method="post" action="{{ url_for('admin_services.update_service', service_id=sid) }}">
+            <div class="modal-header">
+              <div class="w-100">
+                <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                  <div>
+                    <h5 class="modal-title mb-0">Edit Service — {{ svc.name }}</h5>
+                    <div class="small text-muted">Edit Default vs Store Pricing. Store Create page will use Store Pricing when set.</div>
+                  </div>
+
+                  <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="copyPricing('{{ sid }}','default','store')">
+                      Copy Default → Store
+                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-body">
+              <div class="container-fluid">
+                <div class="row g-3 mb-3">
+                  <div class="col-12 col-lg-4">
+                    <img id="edit_img_preview_{{ sid }}" class="img-preview-lg mb-2" src="{{ svc.image_url or '' }}" alt="">
+                    <input type="hidden" name="image_url" id="edit_image_url_{{ sid }}" value="{{ svc.image_url or '' }}">
+                    <div class="d-grid gap-2">
+                      <input type="file" id="edit_image_file_{{ sid }}" accept="image/*" class="form-control edit-image-file" data-sid="{{ sid }}">
+                      <small class="small-muted">Upload from your device (stored on server)</small>
+                      <div id="edit_upload_status_{{ sid }}" class="small-muted"></div>
+                    </div>
+                  </div>
+
+                  <div class="col-12 col-lg-8">
+                  <label class="form-label">Service Name</label>
+                  <input type="text" name="service_name" value="{{ svc.name }}" class="form-control" required>
+
+                  {% if is_mtn_normal or is_mtn_express or is_telecel %}
+                  <div class="mt-3">
+                    <label class="form-label">Provider Routing</label>
+                    <div class="d-flex align-items-center gap-2">
+                      <select class="form-select form-select-sm mtn-provider-select" data-sid="{{ sid }}">
+                        <option value="portal02" {% if provider_val == 'portal02' %}selected{% endif %}>Portal-02</option>
+                        <option value="dataconnect" {% if provider_val == 'dataconnect' %}selected{% endif %}>DataConnect</option>
+                        <option value="codecraft" {% if provider_val == 'codecraft' %}selected{% endif %}>CodeCraft</option>
+                        <option value="skplug" {% if provider_val == 'skplug' %}selected{% endif %}>SKPlug</option>
+                        <option value="bundleportal" {% if provider_val == 'bundleportal' %}selected{% endif %}>BundlePortal</option>
+                        {% if is_mtn_normal or is_mtn_express %}
+                          <option value="datakazina" {% if provider_val == 'datakazina' %}selected{% endif %}>DataKazina</option>
+                        {% endif %}
+                      </select>
+                      <span id="providerSave-{{ sid }}" class="small text-muted"></span>
+                    </div>
+                    <div class="small text-muted mt-1">Switches provider routing for MTN NORMAL / MTN EXPRESS / Telecel.</div>
+                  </div>
+                  {% endif %}
+
+                  <hr class="my-3">
+
+                    <!-- Tabs -->
+                    <ul class="nav nav-tabs" id="priceTabs-{{ sid }}" role="tablist">
+                      <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="tab-default-{{ sid }}" data-bs-toggle="tab"
+                                data-bs-target="#pane-default-{{ sid }}" type="button" role="tab">
+                          Default Pricing
+                        </button>
+                      </li>
+                      <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-store-{{ sid }}" data-bs-toggle="tab"
+                                data-bs-target="#pane-store-{{ sid }}" type="button" role="tab">
+                          Store Pricing
+                        </button>
+                      </li>
+                    </ul>
+
+                    <div class="tab-content border border-top-0 rounded-bottom p-3" id="priceTabsContent-{{ sid }}">
+                      <!-- DEFAULT -->
+                      <div class="tab-pane fade show active" id="pane-default-{{ sid }}" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                          <h6 class="mb-0">Default Offers</h6>
+                          <div class="d-flex gap-2">
+                            <span class="small text-muted">Default offers are locked.</span>
+                          </div>
+                        </div>
+
+                        <div class="table-responsive">
+                          <table class="table table-sm offers-grid align-middle mb-0">
+                            <thead>
+                      <tr>
+                        <th style="width: 180px;">Amount</th>
+                        <th style="width: 180px;">Customer Price</th>
+                        <th>Value</th>
+                        <th class="row-actions"></th>
+                      </tr>
+                            </thead>
+                            <tbody id="offers_default_{{ sid }}">
+                              {% if svc.offers and svc.offers|length > 0 %}
+                                {% for of in svc.offers %}
+                                  <tr class="offer-row" data-offer-kind="default">
+                                    <td>
+                                      <input type="number" step="0.01" min="0"
+                                             class="form-control"
+                                             name="offers_amount[]"
+                                             value="{{ of.amount if of.amount is not none else '' }}"
+                                             placeholder="Amount" disabled>
+                                    </td>
+                                    <td>
+                                      <input type="hidden" name="offers_customer_price[]"
+                                             value="{{ of.customer_price if of.customer_price is not none else (of.amount if of.amount is not none else '') }}">
+                                      <input type="number" step="0.01" min="0"
+                                             class="form-control"
+                                             value="{{ of.customer_price if of.customer_price is not none else (of.amount if of.amount is not none else '') }}"
+                                             placeholder="Customer Price" disabled>
+                                    </td>
+                                    <td>
+                                      <input type="text" class="form-control"
+                                             name="offers_value[]"
+                                             value="{{ of.value or of.value_text or '' }}"
+                                             placeholder="Value" disabled>
+                                    </td>
+                                    <td class="text-end"></td>
+                                  </tr>
+                                {% endfor %}
+                              {% else %}
+                                <tr class="offer-row" data-offer-kind="default">
+                                  <td><input type="number" step="0.01" min="0" class="form-control" name="offers_amount[]" placeholder="Amount" disabled></td>
+                                  <td>
+                                    <input type="hidden" name="offers_customer_price[]" value="">
+                                    <input type="number" step="0.01" min="0" class="form-control" placeholder="Customer Price" disabled>
+                                  </td>
+                                  <td><input type="text" class="form-control" name="offers_value[]" placeholder="Value" disabled></td>
+                                  <td class="text-end"></td>
+                                </tr>
+                              {% endif %}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div class="paste-hint mt-2">Paste rows like <code>20,1GB</code> (Amount,Value).</div>
+                      </div>
+
+                      <!-- STORE -->
+                      <div class="tab-pane fade" id="pane-store-{{ sid }}" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                          <div>
+                            <h6 class="mb-0">Store Offers</h6>
+                            <div class="small text-muted">These are the prices the Store Create page will display.</div>
+                          </div>
+                          <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-secondary add-offer-btn"
+                                    data-target-container="#offers_store_{{ sid }}"
+                                    data-name-prefix="store_offers">+ Add</button>
+                            <button type="button" class="btn btn-sm btn-outline-dark"
+                                    data-paste-target="#offers_store_{{ sid }}"
+                                    data-name-prefix="store_offers">Paste CSV</button>
+                          </div>
+                        </div>
+
+                        <div class="table-responsive">
+                          <table class="table table-sm offers-grid align-middle mb-0">
+                            <thead>
+                              <tr>
+                                <th style="width: 180px;">Amount</th>
+                                <th style="width: 180px;">Customer Price</th>
+                                <th>Value</th>
+                                <th class="row-actions"></th>
+                              </tr>
+                            </thead>
+                            <tbody id="offers_store_{{ sid }}">
+                              {% if svc.store_offers and svc.store_offers|length > 0 %}
+                                {% for of in svc.store_offers %}
+                                  <tr class="offer-row" data-offer-kind="store">
+                                    <td>
+                                      <input type="number" step="0.01" min="0"
+                                             class="form-control"
+                                             name="store_offers_amount[]"
+                                             value="{{ of.amount if of.amount is not none else '' }}"
+                                             placeholder="Amount">
+                                    </td>
+                                    <td>
+                                      <input type="number" step="0.01" min="0"
+                                             class="form-control"
+                                             name="store_offers_customer_price[]"
+                                             value="{{ of.customer_price if of.customer_price is not none else '' }}"
+                                             placeholder="Customer Price">
+                                    </td>
+                                    <td>
+                                      <input type="text" class="form-control"
+                                             name="store_offers_value[]"
+                                             value="{{ of.value or of.value_text or '' }}"
+                                             placeholder="Value">
+                                    </td>
+                                    <td class="text-end">
+                                      <button type="button" class="btn btn-outline-danger btn-sm remove-offer-btn">&times;</button>
+                                    </td>
+                                  </tr>
+                                {% endfor %}
+                              {% else %}
+                                <tr class="offer-row" data-offer-kind="store">
+                                  <td><input type="number" step="0.01" min="0" class="form-control" name="store_offers_amount[]" placeholder="Amount"></td>
+                                  <td><input type="number" step="0.01" min="0" class="form-control" name="store_offers_customer_price[]" placeholder="Customer Price"></td>
+                                  <td><input type="text" class="form-control" name="store_offers_value[]" placeholder="Value"></td>
+                                  <td class="text-end"><button type="button" class="btn btn-outline-danger btn-sm remove-offer-btn">&times;</button></td>
+                                </tr>
+                              {% endif %}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div class="paste-hint mt-2">Paste rows like <code>20,1GB</code> (Amount,Value).</div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <div class="me-auto small text-muted">
+                Tip: If Store Offers is empty, Store will fallback to Default.
+              </div>
+              <button type="submit" class="btn btn-blur-blue">Update Service</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer Pricing -->
+    <div class="modal fade" id="setCustomerPricingModal-{{ sid }}" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down modal-dialog-centered modal-dialog-xxl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Customer Pricing — {{ svc.name }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+
+          <div class="modal-body">
+            <ul class="nav nav-tabs mb-3" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#cust_default_{{ sid }}" type="button" role="tab">
+                  Default for All Customers
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#cust_stage_{{ sid }}" type="button" role="tab">
+                  Stage Pricing
+                </button>
+              </li>
+            </ul>
+
+            <div class="tab-content">
+              <div class="tab-pane fade show active" id="cust_default_{{ sid }}" role="tabpanel">
+                <div class="border rounded p-3 mb-3">
+                  <h6 class="mb-2">Set Default Prices (Applies to Everyone)</h6>
+                  <div class="small text-muted mb-2">These values are used when no stage-specific price is set.</div>
+                  <form method="post" action="{{ url_for('admin_services.set_default_prices_bulk', service_id=sid) }}">
+                    <div class="table-responsive">
+                      <table class="table table-sm align-middle">
+                        <thead>
+                          <tr>
+                            <th style="width:220px;">Offer</th>
+                            <th style="width:160px;">Customer Price</th>
+                            <th style="width:160px;">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for of in (svc.offers or []) %}
+                          <tr>
+                            <td>
+                              <div class="fw-semibold">{{ of.value_text | default(of.value) | default("-") }}</div>
+                              <div class="text-muted small">Offer ID: {{ of.offer_id }}</div>
+                            </td>
+                            <td>
+                              <input type="hidden" name="offer_id[]" value="{{ of.offer_id }}">
+                              <input type="number" name="customer_price[]" step="0.01" min="0" class="form-control"
+                                     value="{{ of.customer_price if of.customer_price is not none else '' }}">
+                            </td>
+                            <td class="text-muted">{{ of.amount if of.amount is not none else "-" }}</td>
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div class="d-grid">
+                      <div class="p-2 border rounded bg-light">
+                        <button class="btn btn-seablue w-100" type="submit">Save Default Prices</button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <div class="tab-pane fade" id="cust_stage_{{ sid }}" role="tabpanel">
+                <div class="border rounded p-3 mb-3">
+                  <h6 class="mb-2">Set Stage Prices (Overrides Default)</h6>
+                  <div class="small text-muted mb-2">Set Normal/Elite/Premium prices. Customers will use their stage price automatically.</div>
+                  <form method="post" action="{{ url_for('admin_services.set_stage_prices_bulk', service_id=sid) }}">
+                    <div class="table-responsive">
+                      <table class="table table-sm align-middle">
+                        <thead>
+                          <tr>
+                            <th style="width:220px;">Offer</th>
+                            <th style="width:160px;">Normal</th>
+                            <th style="width:160px;">Elite</th>
+                            <th style="width:160px;">Premium</th>
+                            <th style="width:160px;">Default Price</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for of in (svc.offers or []) %}
+                          <tr>
+                            <td>
+                              <div class="fw-semibold">{{ of.value_text | default(of.value) | default("-") }}</div>
+                              <div class="text-muted small">Offer ID: {{ of.offer_id }}</div>
+                            </td>
+                            <td>
+                              <input type="hidden" name="offer_id[]" value="{{ of.offer_id }}">
+                              <input type="number" name="normal_price[]" step="0.01" min="0" class="form-control"
+                                     value="{{ of.stage_price_normal if of.stage_price_normal is not none else '' }}"
+                                     placeholder="Fallback default">
+                            </td>
+                            <td>
+                              <input type="number" name="elite_price[]" step="0.01" min="0" class="form-control"
+                                     value="{{ of.stage_price_elite if of.stage_price_elite is not none else '' }}"
+                                     placeholder="Fallback default">
+                            </td>
+                            <td>
+                              <input type="number" name="premium_price[]" step="0.01" min="0" class="form-control"
+                                     value="{{ of.stage_price_premium if of.stage_price_premium is not none else '' }}"
+                                     placeholder="Fallback default">
+                            </td>
+                            <td class="text-muted">{{ of.customer_price if of.customer_price is not none else (of.amount if of.amount is not none else "-") }}</td>
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div class="small text-muted mb-2">Leave a stage field blank to use the default price for that offer.</div>
+                    <div class="d-grid">
+                      <div class="p-2 border rounded bg-light">
+                        <button class="btn btn-seablue w-100" type="submit">Save Stage Prices</button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-seablue" data-bs-dismiss="modal">Done</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+
+  {% endfor %}
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 9999;">
+    <div id="actionToast" class="toast align-items-center" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div id="actionToastBody" class="toast-body">Saved</div>
+        <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ---------------- Search & Filter ---------------- */
+    const svcSearch = document.getElementById('svcSearch');
+    const typeFilter = document.getElementById('typeFilter');
+    function applyFilter() {
+      const q = (svcSearch?.value || '').toLowerCase();
+      const t = (typeFilter?.value || '');
+      document.querySelectorAll('.svc-card').forEach(card => {
+        const name = card.getAttribute('data-name') || '';
+        const type = card.getAttribute('data-type') || '';
+        const okName = !q || name.includes(q);
+        const okType = !t || t === type;
+        card.style.display = (okName && okType) ? '' : 'none';
+      });
+    }
+    svcSearch?.addEventListener('input', applyFilter);
+    typeFilter?.addEventListener('change', applyFilter);
+
+    /* ---------------- Badge helpers ---------------- */
+    function setBadge(el, classesRemove, classAdd, text) {
+      if (!el) return;
+      classesRemove.forEach(c => el.classList.remove(c));
+      if (classAdd) el.classList.add(classAdd);
+      if (text) el.textContent = text;
+    }
+
+    async function toggleType(id, current, btn) {
+      try {
+        const desired = current === 'OFF' ? 'API' : 'OFF';
+        btn?.setAttribute('disabled', 'disabled');
+        const res = await fetch(`/admin/services/${id}/type`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          body: JSON.stringify({ type: desired })
+        });
+        const data = await res.json();
+        if (data.success) {
+          const card = btn.closest('.svc-card');
+          if (card) {
+            card.setAttribute('data-type', data.type);
+            const typeBadge = card.querySelector('[data-role="type-badge"]');
+            setBadge(typeBadge, ['svc-type-API','svc-type-OFF'], data.type === 'API' ? 'svc-type-API' : 'svc-type-OFF', data.type);
+            btn.classList.toggle('btn-success', data.type === 'OFF');
+            btn.classList.toggle('btn-outline-secondary', data.type !== 'OFF');
+            btn.textContent = (data.type === 'OFF') ? 'Turn ON (API)' : 'Turn OFF';
+            btn.setAttribute('onclick', `toggleType('${id}', '${data.type}', this)`);
+          }
+          applyFilter();
+        } else alert(data.error || 'Failed to update type.');
+      } catch (e) { alert('Network error.'); }
+      finally { btn?.removeAttribute('disabled'); }
+    }
+
+    async function toggleStatus(id, current, btn) {
+      try {
+        const desired = current === 'CLOSED' ? 'OPEN' : 'CLOSED';
+        btn?.setAttribute('disabled', 'disabled');
+        const res = await fetch(`/admin/services/${id}/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          body: JSON.stringify({ status: desired })
+        });
+        const data = await res.json();
+        if (data.success) {
+          const card = btn.closest('.svc-card');
+          if (card) {
+            card.setAttribute('data-status', data.status);
+            const badge = card.querySelector('[data-role="status-badge"]');
+            setBadge(badge, ['svc-status-OPEN','svc-status-CLOSED'], data.status === 'OPEN' ? 'svc-status-OPEN' : 'svc-status-CLOSED', data.status);
+            const isOpen = data.status === 'OPEN';
+            btn.classList.toggle('btn-outline-warning', isOpen);
+            btn.classList.toggle('btn-success', !isOpen);
+            btn.textContent = isOpen ? 'Close' : 'Reopen';
+            btn.setAttribute('onclick', `toggleStatus('${id}', '${data.status}', this)`);
+          }
+        } else alert(data.error || 'Failed to update status.');
+      } catch (e) { alert('Network error.'); }
+      finally { btn?.removeAttribute('disabled'); }
+    }
+
+    async function toggleAvailability(id, current, btn) {
+      try {
+        const desired = current === 'OUT_OF_STOCK' ? 'AVAILABLE' : 'OUT_OF_STOCK';
+        btn?.setAttribute('disabled', 'disabled');
+        const res = await fetch(`/admin/services/${id}/availability`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          body: JSON.stringify({ availability: desired })
+        });
+        const data = await res.json();
+        if (data.success) {
+          const card = btn.closest('.svc-card');
+          if (card) {
+            card.setAttribute('data-availability', data.availability);
+            const badge = card.querySelector('[data-role="availability-badge"]');
+            setBadge(badge, ['svc-avail-AVAILABLE','svc-avail-OUT_OF_STOCK'], data.availability === 'AVAILABLE' ? 'svc-avail-AVAILABLE' : 'svc-avail-OUT_OF_STOCK', data.availability);
+            const isAvail = data.availability === 'AVAILABLE';
+            btn.classList.toggle('btn-outline-warning', isAvail);
+            btn.classList.toggle('btn-success', !isAvail);
+            btn.textContent = isAvail ? 'Mark Out of Stock' : 'Mark Available';
+            btn.setAttribute('onclick', `toggleAvailability('${id}', '${data.availability}', this)`);
+          }
+        } else alert(data.error || 'Failed to update availability.');
+      } catch (e) { alert('Network error.'); }
+      finally { btn?.removeAttribute('disabled'); }
+    }
+
+    /* ---------------- Image upload ---------------- */
+    async function uploadToServer(file, { statusEl, previewEl, hiddenInputEl }) {
+      if (!file) return;
+      const formData = new FormData();
+      formData.append("image", file);
+      if (statusEl) statusEl.textContent = "Uploading...";
+      try {
+        const res = await fetch("/upload_service_image", { method: "POST", body: formData });
+        const data = await res.json();
+        if (data.success) {
+          hiddenInputEl.value = data.url;
+          if (previewEl) previewEl.src = data.url;
+          if (statusEl) statusEl.textContent = "✅ Image uploaded.";
+        } else {
+          if (statusEl) statusEl.textContent = "❌ Upload failed.";
+          console.error("Server error:", data.error);
+        }
+      } catch (err) {
+        if (statusEl) statusEl.textContent = "❌ Upload error.";
+        console.error(err);
+      }
+    }
+
+    /* ---------------- Offers helpers ---------------- */
+    function addOfferRow(container, namePrefix) {
+      const amountName = (namePrefix === 'store_offers') ? 'store_offers_amount[]' : 'offers_amount[]';
+      const priceName  = (namePrefix === 'store_offers') ? 'store_offers_customer_price[]' : 'offers_customer_price[]';
+      const valueName  = (namePrefix === 'store_offers') ? 'store_offers_value[]'  : 'offers_value[]';
+
+      const tr = document.createElement("tr");
+      tr.className = "offer-row";
+      tr.innerHTML = `
+        <td><input type="number" step="0.01" min="0" class="form-control" name="${amountName}" placeholder="Amount"></td>
+        <td><input type="number" step="0.01" min="0" class="form-control" name="${priceName}" placeholder="Customer Price"></td>
+        <td><input type="text" class="form-control" name="${valueName}" placeholder="Value"></td>
+        <td class="text-end"><button type="button" class="btn btn-outline-danger btn-sm remove-offer-btn">&times;</button></td>
+      `;
+      container.appendChild(tr);
+    }
+
+    function seedCreateOffers() {
+      const tbody = document.getElementById("create_offers_tbody");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+      addOfferRow(tbody, 'offers');
+    }
+
+    function wireCsvPasteButtons() {
+      document.querySelectorAll('[data-paste-target]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const targetSel = btn.getAttribute('data-paste-target');
+          const prefix = btn.getAttribute('data-name-prefix') || 'offers';
+          const tbody = document.querySelector(targetSel);
+          if (!tbody) return;
+
+          const text = await navigator.clipboard.readText().catch(() => "");
+          const pasted = text || prompt("Paste CSV rows here (Amount,Customer Price,Value) and click OK:", "");
+          if (!pasted) return;
+
+          const lines = pasted.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+          lines.forEach(line => {
+            const [amt, price, val] = line.split(",").map(s => (s ?? "").trim());
+            const amountName = (prefix === 'store_offers') ? 'store_offers_amount[]' : 'offers_amount[]';
+            const priceName  = (prefix === 'store_offers') ? 'store_offers_customer_price[]' : 'offers_customer_price[]';
+            const valueName  = (prefix === 'store_offers') ? 'store_offers_value[]'  : 'offers_value[]';
+
+            const tr = document.createElement("tr");
+            tr.className = "offer-row";
+            tr.innerHTML = `
+              <td><input type="number" step="0.01" min="0" class="form-control" name="${amountName}" value="${amt || ""}" placeholder="Amount"></td>
+              <td><input type="number" step="0.01" min="0" class="form-control" name="${priceName}" value="${price || ""}" placeholder="Customer Price"></td>
+              <td><input type="text" class="form-control" name="${valueName}" value="${(val || "").replace(/"/g,'&quot;')}" placeholder="Value"></td>
+              <td class="text-end"><button type="button" class="btn btn-outline-danger btn-sm remove-offer-btn">&times;</button></td>
+            `;
+            tbody.appendChild(tr);
+          });
+        });
+      });
+    }
+
+    /* Remove-offer buttons */
+    document.body.addEventListener("click", function (e) {
+      if (e.target.classList.contains("remove-offer-btn")) {
+        const row = e.target.closest(".offer-row");
+        const container = row?.parentElement;
+        if (!row || !container) return;
+        const rows = container.querySelectorAll(".offer-row");
+        if (rows.length > 1) row.remove();
+        else row.querySelectorAll("input").forEach(i => i.value = "");
+      }
+    });
+
+    /* Add-offer buttons */
+    document.addEventListener("DOMContentLoaded", function () {
+      const addModal = document.getElementById("addServiceModal");
+      if (addModal) {
+        addModal.addEventListener("show.bs.modal", () => {
+          const hidden = document.getElementById("create_image_url");
+          const prev   = document.getElementById("create_img_preview");
+          const stat   = document.getElementById("create_upload_status");
+          if (hidden) hidden.value = "";
+          if (prev) prev.src = "";
+          if (stat) stat.textContent = "";
+          seedCreateOffers();
+        });
+      }
+
+      const createFile = document.getElementById("create_image_file");
+      const createHidden = document.getElementById("create_image_url");
+      const createPrev = document.getElementById("create_img_preview");
+      const createStat = document.getElementById("create_upload_status");
+      if (createFile) {
+        createFile.addEventListener("change", (e) => {
+          uploadToServer(e.target.files[0], { statusEl: createStat, previewEl: createPrev, hiddenInputEl: createHidden });
+        });
+      }
+
+      document.addEventListener("change", function (e) {
+        if (e.target.classList.contains("edit-image-file")) {
+          const sid = e.target.dataset.sid;
+          uploadToServer(e.target.files[0], {
+            statusEl: document.getElementById(`edit_upload_status_${sid}`),
+            previewEl: document.getElementById(`edit_img_preview_${sid}`),
+            hiddenInputEl: document.getElementById(`edit_image_url_${sid}`)
+          });
+        }
+      });
+
+      document.querySelectorAll(".add-offer-btn").forEach(addBtn => {
+        const containerSel = addBtn.getAttribute("data-target-container");
+        const prefix = addBtn.getAttribute("data-name-prefix") || 'offers';
+        if (!containerSel) return;
+        addBtn.addEventListener("click", function () {
+          const cont = document.querySelector(containerSel);
+          if (!cont) return;
+          addOfferRow(cont, prefix);
+        });
+      });
+
+      wireCsvPasteButtons();
+    });
+
+    /* jump to Store tab when user clicks Store Prices */
+    function openStoreTab(sid){
+      setTimeout(() => {
+        const btn = document.getElementById(`tab-store-${sid}`);
+        if (btn) btn.click();
+      }, 50);
+    }
+
+    /* copy pricing rows between tabs */
+    function copyPricing(sid, fromKind, toKind){
+      const fromTbody = document.getElementById(fromKind === 'store' ? `offers_store_${sid}` : `offers_default_${sid}`);
+      const toTbody   = document.getElementById(toKind === 'store' ? `offers_store_${sid}` : `offers_default_${sid}`);
+      if (!fromTbody || !toTbody) return;
+
+      // read rows
+      const rows = Array.from(fromTbody.querySelectorAll("tr.offer-row"));
+      const data = rows.map(r => {
+        const inputs = r.querySelectorAll("input");
+        return {
+          amount: inputs?.[0]?.value ?? "",
+          price:  inputs?.[1]?.value ?? "",
+          value:  inputs?.[2]?.value ?? ""
+        };
+      }).filter(x => (x.amount || x.value));
+
+      // clear target
+      toTbody.innerHTML = "";
+
+      const prefix = (toKind === 'store') ? 'store_offers' : 'offers';
+
+      if (data.length === 0){
+        addOfferRow(toTbody, prefix);
+        return;
+      }
+
+      data.forEach(x => {
+        const amountName = (prefix === 'store_offers') ? 'store_offers_amount[]' : 'offers_amount[]';
+        const priceName  = (prefix === 'store_offers') ? 'store_offers_customer_price[]' : 'offers_customer_price[]';
+        const valueName  = (prefix === 'store_offers') ? 'store_offers_value[]'  : 'offers_value[]';
+
+        const tr = document.createElement("tr");
+        tr.className = "offer-row";
+        tr.setAttribute("data-offer-kind", (toKind === 'store') ? "store" : "default");
+        tr.innerHTML = `
+          <td><input type="number" step="0.01" min="0" class="form-control" name="${amountName}" value="${(x.amount||"").replace(/"/g,'&quot;')}" placeholder="Amount"></td>
+          <td><input type="number" step="0.01" min="0" class="form-control" name="${priceName}" value="${(x.price||"").replace(/"/g,'&quot;')}" placeholder="Customer Price"></td>
+          <td><input type="text" class="form-control" name="${valueName}" value="${(x.value||"").replace(/"/g,'&quot;')}" placeholder="Value"></td>
+          <td class="text-end"><button type="button" class="btn btn-outline-danger btn-sm remove-offer-btn">&times;</button></td>
+        `;
+        toTbody.appendChild(tr);
+      });
+    }
+
+    /* Toast helper */
+    const actionToastEl = document.getElementById('actionToast');
+    const actionToastBody = document.getElementById('actionToastBody');
+    const actionToast = actionToastEl ? new bootstrap.Toast(actionToastEl, { delay: 2400 }) : null;
+    function showToast(msg, isError){
+      if (actionToastBody) actionToastBody.textContent = msg || '';
+      if (actionToastEl){
+        actionToastEl.classList.toggle('text-bg-danger', !!isError);
+        actionToastEl.classList.toggle('text-bg-success', !isError);
+        actionToast.show();
+      }
+    }
+
+    const providerLabels = {
+      portal02: 'Portal-02',
+      dataconnect: 'DataConnect',
+      codecraft: 'CodeCraft',
+      datakazina: 'DataKazina',
+      skplug: 'SKPlug',
+      bundleportal: 'BundlePortal'
+    };
+
+    /* MTN NORMAL provider switch */
+    document.addEventListener('focusin', function(e){
+      const sel = e.target.closest('.mtn-provider-select');
+      if (sel) sel.dataset.prev = sel.value;
+    });
+
+    document.addEventListener('change', async function(e) {
+      const sel = e.target.closest('.mtn-provider-select');
+      if (!sel) return;
+      const sid = sel.getAttribute('data-sid');
+      const provider = (sel.value || '').trim();
+      const statusEl = document.getElementById(`providerSave-${sid}`);
+      const prev = sel.dataset.prev || sel.value;
+      sel.disabled = true;
+      if (statusEl) {
+        statusEl.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
+      }
+      try {
+        const res = await fetch(`/admin/services/${sid}/provider`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          body: JSON.stringify({ provider })
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (statusEl) statusEl.textContent = "Saved ✅";
+          const providerLabel = providerLabels[data.provider] || data.provider;
+          const card = document.querySelector(`.svc-card[data-sid="${sid}"]`);
+          const chip = card ? card.querySelector('[data-role="provider-chip"]') : null;
+          if (chip) chip.textContent = `Provider: ${providerLabel}`;
+          showToast(`Provider updated to ${providerLabel}`, false);
+          sel.dataset.prev = data.provider;
+        } else {
+          sel.value = prev;
+          if (statusEl) statusEl.textContent = data.error || "Save failed.";
+          showToast(data.error || 'Failed to update provider.', true);
+        }
+      } catch (err) {
+        sel.value = prev;
+        if (statusEl) statusEl.textContent = "Network error.";
+        showToast('Network error.', true);
+      } finally {
+        sel.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

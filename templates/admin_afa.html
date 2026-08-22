@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin · AFA Registrations</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" href="{{ BRAND_LOGO_URL }}">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    :root { --sea-blue:var(--cd-primary); --soft:var(--cd-bg); --ink:var(--cd-text); }
+    body { background: var(--soft); }
+    .page-card { border:1px solid var(--cd-border); border-radius:14px; background:var(--cd-card); }
+    .status-badge { font-size:.75rem; padding:.35rem .55rem; border-radius:999px; border:1px solid transparent; }
+    .st-pending    { background:var(--cd-warning-10);  color:var(--cd-warning); border-color:rgb(var(--cd-warning-rgb) / 0.35); }
+    .st-completed  { background:var(--cd-success-10);  color:var(--cd-success); border-color:rgb(var(--cd-success-rgb) / 0.30); }
+    .st-failed,
+    .st-rejected   { background:var(--cd-error-10);  color:var(--cd-error); border-color:rgb(var(--cd-error-rgb) / 0.30); }
+    .st-processing,
+    .st-inprogress { background:var(--cd-primary-10); color:var(--cd-primary); border-color:rgb(var(--cd-primary-rgb) / 0.25); }
+    .st-delivered  { background:var(--cd-primary-10); color:var(--cd-primary); border-color:rgb(var(--cd-primary-rgb) / 0.25); }
+    .st-canceled   { background:rgb(var(--cd-muted-rgb) / 0.15); color:var(--cd-muted); border-color:rgb(var(--cd-muted-rgb) / 0.25); }
+    .st-refunded   { background:rgb(var(--cd-success-rgb) / 0.15); color:var(--cd-success); border-color:rgb(var(--cd-success-rgb) / 0.30); }
+    .table > :not(caption) > * > * { vertical-align: middle; }
+    .small-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.85rem; }
+    .btn-group-wrap { display:flex; flex-wrap:wrap; gap:.35rem; }
+    @media (max-width: 992px){
+      th:nth-child(6), td:nth-child(6), /* DoB */
+      th:nth-child(7), td:nth-child(7)  /* Location */
+      { display:none; }
+    }
+  </style>
+</head>
+<body>
+  {% include 'admin_sidebar.html' ignore missing %}
+
+  <main class="container py-4">
+    <div class="d-flex align-items-center mb-3">
+      <i class="bi bi-list-check me-2 fs-4 text-primary"></i>
+      <h3 class="mb-0">AFA Registrations (Admin)</h3>
+    </div>
+
+    <!-- AFA Settings -->
+    <div class="page-card p-3 mb-3">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-2">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-gear-fill text-primary fs-5"></i>
+          <h5 class="mb-0">AFA Settings</h5>
+        </div>
+        <div class="text-muted small">
+          Last updated: <span id="afa-updated-at">—</span>
+        </div>
+      </div>
+
+      <form id="afa-settings-form" class="row g-3 align-items-end">
+        <div class="col-12 col-md-3">
+          <label class="form-label fw-semibold" for="afa-price">Price (GHS)</label>
+          <div class="input-group">
+            <span class="input-group-text">GHS</span>
+            <input id="afa-price" type="number" step="0.01" min="0" class="form-control" placeholder="2.00">
+          </div>
+          <div class="form-text">Amount customers will be charged for AFA registration.</div>
+        </div>
+
+        <div class="col-6 col-md-3">
+          <label class="form-label fw-semibold d-block">Open / Closed</label>
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="afa-is-open">
+            <label class="form-check-label" for="afa-is-open">
+              <span id="lbl-open">Open</span>
+            </label>
+          </div>
+          <div class="form-text">Turn off to close AFA registration.</div>
+        </div>
+
+        <div class="col-6 col-md-3">
+          <label class="form-label fw-semibold d-block">Availability</label>
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="afa-in-stock">
+            <label class="form-check-label" for="afa-in-stock">
+              <span id="lbl-stock">Available</span>
+            </label>
+          </div>
+          <div class="form-text">Turn off to mark as Out of Stock.</div>
+        </div>
+
+        <div class="col-12 col-md-3 d-flex gap-2">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-1"></i> Save Settings
+          </button>
+          <button type="button" id="afa-settings-refresh" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Filters -->
+    <div class="page-card p-3 mb-3">
+      <form id="filter-form" class="row g-2 align-items-end">
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="q">Search</label>
+          <input id="q" class="form-control" placeholder="name, phone, Ghana card, location">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label" for="status">Status</label>
+          <select id="status" class="form-select">
+            <option value="">All</option>
+            <option value="pending">Pending</option>
+            <option value="processing">Processing</option>
+            <option value="delivered">Delivered</option>
+            <option value="completed">Completed</option>
+            <option value="failed">Failed</option>
+            <option value="rejected">Rejected</option>
+            <option value="canceled">Canceled</option>
+            <option value="refunded">Refunded</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label" for="charged">Charged</label>
+          <select id="charged" class="form-select">
+            <option value="">Any</option>
+            <option value="true">Charged</option>
+            <option value="false">Not charged</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label" for="date_from">From</label>
+          <input id="date_from" type="date" class="form-control">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label" for="date_to">To</label>
+          <input id="date_to" type="date" class="form-control">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label" for="page_size">Per page</label>
+          <select id="page_size" class="form-select">
+            <option>25</option><option>50</option><option>100</option>
+          </select>
+        </div>
+        <div class="col-12 d-flex gap-2">
+          <button class="btn btn-primary" type="submit">Filter</button>
+          <button class="btn btn-outline-secondary" type="button" id="btn-reset">Reset</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Stats -->
+    <div class="page-card p-3 mb-3">
+      <div class="row g-3">
+        <div class="col-12 col-md-3">
+          <div class="fw-semibold">Total (filtered)</div>
+          <div><span id="stat-total" class="small-mono">0</span> orders</div>
+        </div>
+        <div class="col-12 col-md-3">
+          <div class="fw-semibold">Sum Amount</div>
+          <div>GHS <span id="stat-sum" class="small-mono">0.00</span></div>
+        </div>
+        <div class="col-12 col-md-6">
+          <div class="fw-semibold">By Status</div>
+          <div class="small">
+            Pending: <span id="st-pending">0</span> ·
+            Processing: <span id="st-processing">0</span> ·
+            Delivered: <span id="st-delivered">0</span> ·
+            Completed: <span id="st-completed">0</span> ·
+            Failed: <span id="st-failed">0</span> ·
+            Rejected: <span id="st-rejected">0</span> ·
+            Canceled: <span id="st-canceled">0</span> ·
+            Refunded: <span id="st-refunded">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="page-card p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th style="width:48px">#</th>
+              <th>Customer</th>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Ghana Card</th>
+              <th>DoB</th>
+              <th>Location</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Charged</th>
+              <th>Created</th>
+              <th style="width:280px">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div class="d-flex justify-content-between align-items-center p-3">
+        <div class="text-muted" id="results-info"></div>
+        <div class="btn-group">
+          <button class="btn btn-outline-primary btn-sm" id="prev">Prev</button>
+          <button class="btn btn-outline-primary btn-sm" id="next">Next</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    (function(){
+      var page = 1;
+      var afaSettings = { price: 2.00, is_open: true, in_stock: true };
+
+      function money(n){ return Number(n || 0).toFixed(2); }
+      function uc(s){ s = String(s||""); return s.charAt(0).toUpperCase()+s.slice(1); }
+      function badge(st){
+        var s = (st || "pending").toLowerCase();
+        var cls = "status-badge ";
+        if (s === "completed") cls += "st-completed";
+        else if (s === "failed" || s === "rejected") cls += "st-rejected";
+        else if (s === "processing" || s === "inprogress") cls += "st-processing";
+        else if (s === "delivered") cls += "st-delivered";
+        else if (s === "canceled") cls += "st-canceled";
+        else if (s === "refunded") cls += "st-refunded";
+        else cls += "st-pending";
+        return '<span class="'+cls+'">'+ uc(s) +'</span>';
+      }
+
+      // ===== AFA SETTINGS =====
+      function loadAfaSettings(){
+        return fetch("/admin/api/afa/settings")
+          .then(r=>r.json())
+          .then(res=>{
+            if(!res || !res.success){ throw new Error((res && res.error) || "Failed to load settings"); }
+            var s = res.data || {};
+            afaSettings.price   = (s.price != null ? Number(s.price) : 2.00);
+            afaSettings.is_open = !!s.is_open;
+            afaSettings.in_stock= !!s.in_stock;
+
+            document.getElementById("afa-price").value = afaSettings.price.toFixed(2);
+            document.getElementById("afa-is-open").checked = afaSettings.is_open;
+            document.getElementById("afa-in-stock").checked = afaSettings.in_stock;
+            document.getElementById("lbl-open").textContent  = afaSettings.is_open ? "Open" : "Closed";
+            document.getElementById("lbl-stock").textContent = afaSettings.in_stock ? "Available" : "Out of Stock";
+            document.getElementById("afa-updated-at").textContent = s.updated_at || "—";
+          });
+      }
+
+      document.getElementById("afa-is-open").addEventListener("change", function(){
+        document.getElementById("lbl-open").textContent = this.checked ? "Open" : "Closed";
+      });
+      document.getElementById("afa-in-stock").addEventListener("change", function(){
+        document.getElementById("lbl-stock").textContent = this.checked ? "Available" : "Out of Stock";
+      });
+      document.getElementById("afa-settings-refresh").addEventListener("click", function(){
+        loadAfaSettings().catch(err=>Swal.fire("Error", err.message || "Failed to refresh settings", "error"));
+      });
+      document.getElementById("afa-settings-form").addEventListener("submit", function(e){
+        e.preventDefault();
+        var price = parseFloat(document.getElementById("afa-price").value || "0");
+        var isOpen = document.getElementById("afa-is-open").checked;
+        var inStock = document.getElementById("afa-in-stock").checked;
+
+        if (isNaN(price) || price < 0){
+          Swal.fire("Invalid Price", "Enter a valid price (>= 0.00).", "warning");
+          return;
+        }
+
+        fetch("/admin/api/afa/settings", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({ price: price, is_open: isOpen, in_stock: inStock })
+        })
+        .then(r=>r.json())
+        .then(res=>{
+          if(!res || !res.success){ throw new Error((res && res.error) || "Failed to save"); }
+          Swal.fire("Saved", "AFA settings updated successfully.", "success");
+          return loadAfaSettings();
+        })
+        .catch(err=>Swal.fire("Error", err.message || "Failed to save settings", "error"));
+      });
+
+      // ===== LIST / TABLE =====
+      function load(){
+        var q = document.getElementById("q").value || "";
+        var status = document.getElementById("status").value || "";
+        var charged = document.getElementById("charged").value || "";
+        var df = document.getElementById("date_from").value || "";
+        var dt = document.getElementById("date_to").value || "";
+        var pageSize = document.getElementById("page_size").value || "25";
+
+        var params = ["page="+encodeURIComponent(page), "page_size="+encodeURIComponent(pageSize)];
+        if (q) params.push("q="+encodeURIComponent(q));
+        if (status) params.push("status="+encodeURIComponent(status));
+        if (charged) params.push("charged="+encodeURIComponent(charged));
+        if (df) params.push("date_from="+encodeURIComponent(df));
+        if (dt) params.push("date_to="+encodeURIComponent(dt));
+
+        fetch("/admin/api/afa/list?"+params.join("&"))
+          .then(function(r){ return r.json(); })
+          .then(function(res){
+            if (!res || !res.success){ Swal.fire("Error", (res && res.error) || "Failed to load", "error"); return; }
+
+            document.getElementById("stat-total").textContent = res.total;
+            document.getElementById("stat-sum").textContent = money(res.total_amount || 0);
+            var sc = res.status_counts || {};
+            document.getElementById("st-pending").textContent    = sc.pending    || 0;
+            document.getElementById("st-processing").textContent = sc.processing || 0;
+            document.getElementById("st-delivered").textContent  = sc.delivered  || 0;
+            document.getElementById("st-completed").textContent  = sc.completed  || 0;
+            document.getElementById("st-failed").textContent     = sc.failed     || 0;
+            document.getElementById("st-rejected").textContent   = sc.rejected   || 0;
+            document.getElementById("st-canceled").textContent   = sc.canceled   || 0;
+            document.getElementById("st-refunded").textContent   = sc.refunded   || 0;
+
+            var tbody = document.getElementById("rows");
+            tbody.innerHTML = "";
+            for (var i=0;i<res.items.length;i++){
+              var it = res.items[i];
+              var idx = (res.page - 1) * res.page_size + i + 1;
+              var custName = (it.customer && (it.customer.name || it.customer.phone)) || "-";
+              var st = (it.status || "pending").toLowerCase();
+              var chargedText = it.charged ? "Yes" : "No";
+              var isRefunded = !!it.refunded;
+
+              // button rules
+              var disableDeliver = (["delivered","completed","rejected","failed","canceled","refunded"].indexOf(st) !== -1);
+              var disableCharge  = it.charged === true || ["canceled","refunded"].indexOf(st) !== -1;
+              var disableCancel  = ["canceled","refunded","completed"].indexOf(st) !== -1;
+              var disableRefund  = isRefunded || st === "refunded";
+
+              var tr = document.createElement("tr");
+              tr.innerHTML =
+                "<td>"+idx+"</td>"+
+                "<td>"+custName+"</td>"+
+                "<td>"+(it.name||"")+"</td>"+
+                "<td>"+(it.phone||"")+"</td>"+
+                "<td>"+(it.ghana_card||"")+"</td>"+
+                "<td>"+(it.dob||"")+"</td>"+
+                "<td>"+(it.location||"")+"</td>"+
+                "<td>GHS "+money(it.amount)+"</td>"+
+                "<td>"+badge(st)+"</td>"+
+                "<td>"+chargedText+(isRefunded ? ' <span class="badge bg-success ms-1">Refunded</span>' : '')+"</td>"+
+                "<td>"+(it.created_at_display||"")+"</td>"+
+                '<td>'+
+                  '<div class="btn-group-wrap">'+
+                    '<button class="btn btn-outline-success btn-sm btn-deliver" data-id="'+it.id+'" '+(disableDeliver?'disabled':'')+'><i class="bi bi-box-seam me-1"></i>Delivered</button>'+
+                    '<button class="btn btn-outline-danger btn-sm btn-charge" data-id="'+it.id+'" '+(disableCharge?'disabled':'')+'><i class="bi bi-cash-coin me-1"></i>Charge GHS '+money(afaSettings.price)+'</button>'+
+                    '<button class="btn btn-outline-secondary btn-sm btn-cancel" data-id="'+it.id+'" '+(disableCancel?'disabled':'')+'><i class="bi bi-x-circle me-1"></i>Cancel</button>'+
+                    '<button class="btn btn-outline-primary btn-sm btn-refund" data-id="'+it.id+'" '+(disableRefund?'disabled':'')+'><i class="bi bi-arrow-counterclockwise me-1"></i>Refund</button>'+
+                  '</div>'+
+                '</td>';
+              tbody.appendChild(tr);
+            }
+
+            var start = res.total ? ((res.page - 1) * res.page_size + 1) : 0;
+            var end   = Math.min(res.total, res.page * res.page_size);
+            document.getElementById("results-info").textContent =
+              "Showing "+start+"-"+end+" of "+res.total;
+
+            document.getElementById("prev").disabled = (res.page <= 1);
+            document.getElementById("next").disabled = (res.page * res.page_size >= res.total);
+          })
+          .catch(function(){ Swal.fire("Error", "Network error while loading data", "error"); });
+      }
+
+      // filters
+      document.getElementById("filter-form").addEventListener("submit", function(e){
+        e.preventDefault(); page=1; load();
+      });
+      document.getElementById("btn-reset").addEventListener("click", function(){
+        document.getElementById("q").value="";
+        document.getElementById("status").value="";
+        document.getElementById("charged").value="";
+        document.getElementById("date_from").value="";
+        document.getElementById("date_to").value="";
+        page=1; load();
+      });
+      document.getElementById("page_size").addEventListener("change", function(){
+        page=1; load();
+      });
+
+      document.getElementById("prev").addEventListener("click", function(){ if(page>1){ page--; load(); }});
+      document.getElementById("next").addEventListener("click", function(){ page++; load(); });
+
+      // actions
+      document.addEventListener("click", function(e){
+        var b1 = e.target.closest(".btn-deliver");
+        if (b1){
+          var id = b1.getAttribute("data-id");
+          b1.disabled = true;
+          fetch("/admin/api/afa/"+encodeURIComponent(id)+"/status", {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({status: "delivered"})
+          }).then(function(r){ return r.json(); })
+            .then(function(res){
+              if(!res || !res.success){ Swal.fire("Error", (res && res.error) || "Failed"); }
+              load();
+            }).catch(function(){ Swal.fire("Error", "Network error", "error"); })
+            .finally(function(){ b1.disabled=false; });
+          return;
+        }
+
+        var b2 = e.target.closest(".btn-charge");
+        if (b2){
+          var id = b2.getAttribute("data-id");
+          Swal.fire({
+            title: "Charge customer?",
+            html: "AFA charge: <b>GHS "+money(afaSettings.price)+"</b>",
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonText: "Yes, charge",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "var(--cd-error)"
+          }).then(function(resSwal){
+            if (!resSwal.isConfirmed) return;
+            b2.disabled = true;
+            fetch("/admin/api/afa/"+encodeURIComponent(id)+"/charge", { method: "POST" })
+              .then(function(r){ return r.json(); })
+              .then(function(res){
+                if(!res || !res.success){ Swal.fire("Charge failed", (res && res.error) || "Could not charge", "error"); }
+                else { Swal.fire("Charged", "Customer charged successfully.", "success"); }
+                load();
+              }).catch(function(){ Swal.fire("Error", "Network error", "error"); })
+              .finally(function(){ b2.disabled=false; });
+          });
+          return;
+        }
+
+        var b3 = e.target.closest(".btn-cancel");
+        if (b3){
+          var id = b3.getAttribute("data-id");
+          Swal.fire({
+            title: "Cancel registration?",
+            html: "This will set status to <b>canceled</b>."+
+                  "<br>If already charged, the system will <b>auto-refund</b> the amount.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Yes, cancel",
+            cancelButtonText: "No",
+            confirmButtonColor: "var(--cd-muted)"
+          }).then(function(resSwal){
+            if (!resSwal.isConfirmed) return;
+            b3.disabled = true;
+            fetch("/admin/api/afa/"+encodeURIComponent(id)+"/cancel", { method: "POST" })
+              .then(function(r){ return r.json(); })
+              .then(function(res){
+                if(!res || !res.success){ Swal.fire("Cancel failed", (res && res.error) || "Could not cancel", "error"); }
+                else { Swal.fire("Canceled", res.message || "Registration canceled.", "success"); }
+                load();
+              }).catch(function(){ Swal.fire("Error", "Network error", "error"); })
+              .finally(function(){ b3.disabled=false; });
+          });
+          return;
+        }
+
+        var b4 = e.target.closest(".btn-refund");
+        if (b4){
+          var id = b4.getAttribute("data-id");
+          Swal.fire({
+            title: "Refund customer?",
+            html: "This will credit the customer wallet and set status to <b>refunded</b>."+
+                  "<br>Refunds are idempotent (no double refunds).",
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonText: "Refund",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "var(--cd-primary)"
+          }).then(function(resSwal){
+            if (!resSwal.isConfirmed) return;
+            b4.disabled = true;
+            fetch("/admin/api/afa/"+encodeURIComponent(id)+"/refund", { method: "POST" })
+              .then(function(r){ return r.json(); })
+              .then(function(res){
+                if(!res || !res.success){ Swal.fire("Refund failed", (res && res.error) || "Could not refund", "error"); }
+                else { Swal.fire("Refunded", res.message || "Refund processed.", "success"); }
+                load();
+              }).catch(function(){ Swal.fire("Error", "Network error", "error"); })
+              .finally(function(){ b4.disabled=false; });
+          });
+          return;
+        }
+      });
+
+      // Boot: load settings first, then table
+      loadAfaSettings()
+        .then(load)
+        .catch(err=>{
+          Swal.fire("Error", err.message || "Failed to load AFA settings", "error");
+          load(); // still try to load table
+        });
+    })();
+  </script>
+</body>
+</html>

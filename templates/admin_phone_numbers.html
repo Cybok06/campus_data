@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Phone Numbers - Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="{{ BRAND_LOGO_URL }}">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root{
+      --sea-blue: var(--cd-primary);
+      --border: var(--cd-border);
+    }
+    @media (min-width: 992px){ .admin-content{ margin-left:260px; padding:2rem; } }
+    @media (max-width: 991px){ .admin-content{ margin-top:1rem; padding:1rem; } }
+
+    .panel{
+      background: var(--cd-card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 10px 24px rgb(var(--cd-deep-rgb) / 0.05);
+    }
+    .metric{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1rem;
+      background: linear-gradient(180deg, rgb(var(--cd-white-rgb) / 0.7), transparent), var(--cd-card);
+    }
+    .metric .label{ color: var(--cd-muted); font-size: .92rem; }
+    .metric .value{ font-size: 1.8rem; font-weight: 700; }
+    .table thead th{ white-space: nowrap; }
+    .service-badge{
+      display: inline-block;
+      margin: 0 .2rem .2rem 0;
+      padding: .3rem .55rem;
+      border-radius: 999px;
+      background: var(--cd-primary-10);
+      color: var(--sea-blue);
+      font-size: .78rem;
+    }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .guide-list li{ margin-bottom: .55rem; }
+  </style>
+</head>
+<body>
+  {% include 'admin_sidebar.html' %}
+
+  <div class="admin-content">
+    <div class="mb-4">
+      <div class="btn-group" role="group" aria-label="Phone number views">
+        <a class="btn {% if view == 'unique' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+           href="{{ url_for('admin_phone_numbers.phone_numbers_page', view='unique') }}">
+          Unique Phone Numbers
+        </a>
+        <a class="btn {% if view == 'new' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+           href="{{ url_for('admin_phone_numbers.phone_numbers_page', view='new') }}">
+          New Phone Numbers
+        </a>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-4">
+      <div>
+        <h2 class="mb-1"><i class="bi bi-telephone-fill me-2 text-primary"></i>{% if view == 'new' %}New Phone Numbers{% else %}Phone Numbers{% endif %}</h2>
+        <div class="text-muted">
+          {% if view == 'new' %}
+            View phone numbers whose first-ever order happened in the selected date range, then export the result.
+          {% else %}
+            View all unique phone numbers used in orders, filter by service or network, and export the result.
+          {% endif %}
+        </div>
+      </div>
+      <div class="panel p-3">
+        <div class="small text-muted mb-1">Order Access For New Numbers</div>
+        <button
+          type="button"
+          id="blockNewNumbersBtn"
+          class="btn {% if block_new_numbers_enabled %}btn-danger{% else %}btn-outline-success{% endif %}">
+          {% if block_new_numbers_enabled %}Block New Numbers: ON{% else %}Block New Numbers: OFF{% endif %}
+        </button>
+      </div>
+    </div>
+
+    <div class="modal fade" id="phoneNumbersGuideModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Phone Numbers Page Guide</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <ul class="guide-list mb-0">
+              <li><strong>Unique Phone Numbers</strong> shows all unique phone numbers that have placed orders in the system.</li>
+              <li><strong>New Phone Numbers</strong> shows numbers whose first-ever order happened in the selected period. Use <strong>All time</strong> or a <strong>Custom date range</strong>.</li>
+              <li><strong>Export</strong> lets you download the current result as Excel or PDF. In the unique view, you can export all, a specific service, or a specific network.</li>
+              <li><strong>Block New Numbers</strong> controls whether brand new numbers are allowed to order. When it is ON, only numbers that already have order history can place orders.</li>
+              <li>When a number is blocked, customer dashboard and store page will stop it before carting and show a message telling the user to contact Admin.</li>
+              <li>The summary cards show counts for the current view, including the count of new numbers in the new-numbers tab.</li>
+              <li>Pagination is set to 20 records per page for faster loading.</li>
+            </ul>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Understood</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-md-4">
+        <div class="metric">
+          <div class="label">{% if view == 'new' %}New Numbers{% else %}Total Phone Numbers{% endif %}</div>
+          <div class="value">{% if view == 'new' %}{{ summary.new_numbers_count }}{% else %}{{ summary.total_phone_numbers }}{% endif %}</div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="metric">
+          <div class="label">Matched Orders</div>
+          <div class="value">{% if view == 'new' %}{{ summary.total_orders }}{% else %}{{ summary.total_matching_orders }}{% endif %}</div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="metric">
+          <div class="label">Matched Order Lines</div>
+          <div class="value">{% if view == 'new' %}{{ summary.total_lines }}{% else %}{{ summary.total_matching_lines }}{% endif %}</div>
+        </div>
+      </div>
+    </div>
+
+    <form method="get" class="panel p-3 mb-4">
+      <input type="hidden" name="view" value="{{ view }}">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label">Search</label>
+          <input type="text" name="q" value="{{ search_q }}" class="form-control" placeholder="{% if view == 'new' %}Phone, first service, network, or order ID{% else %}Phone, service, or order ID{% endif %}">
+        </div>
+        {% if view == 'unique' %}
+          <div class="col-md-4">
+            <label class="form-label">Service</label>
+            <select name="service" class="form-select">
+              <option value="">All services</option>
+              {% for name in service_options %}
+                <option value="{{ name }}" {% if service_filter == name %}selected{% endif %}>{{ name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Network</label>
+            <select name="network" class="form-select">
+              <option value="">All networks</option>
+              {% for name in network_options %}
+                <option value="{{ name }}" {% if network_filter == name %}selected{% endif %}>{{ name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        {% else %}
+          <div class="col-md-4">
+            <label class="form-label">Date Filter</label>
+            <select name="date_mode" id="dateMode" class="form-select">
+              <option value="all" {% if date_mode == 'all' %}selected{% endif %}>All time</option>
+              <option value="custom" {% if date_mode == 'custom' %}selected{% endif %}>Custom date range</option>
+            </select>
+          </div>
+          <div class="col-md-2" id="startDateWrap">
+            <label class="form-label">Start Date</label>
+            <input type="date" name="start_date" value="{{ start_date }}" class="form-control">
+          </div>
+          <div class="col-md-2" id="endDateWrap">
+            <label class="form-label">End Date</label>
+            <input type="date" name="end_date" value="{{ end_date }}" class="form-control">
+          </div>
+        {% endif %}
+        <div class="col-12 d-flex gap-2">
+          <button class="btn btn-primary flex-fill" type="submit">
+            <i class="bi bi-funnel me-1"></i> Apply Filters
+          </button>
+          <a class="btn btn-outline-secondary" href="{{ url_for('admin_phone_numbers.phone_numbers_page', view=view) }}">
+            Reset
+          </a>
+        </div>
+      </div>
+    </form>
+
+    <form method="get" action="{{ url_for('admin_phone_numbers.export_phone_numbers') }}" class="panel p-3 mb-4">
+      <div class="row g-3 align-items-end">
+        <input type="hidden" name="view" value="{{ view }}">
+        <input type="hidden" name="q" value="{{ search_q }}">
+        {% if view == 'new' %}
+          <input type="hidden" name="date_mode" value="{{ date_mode }}">
+          <input type="hidden" name="start_date" value="{{ start_date }}">
+          <input type="hidden" name="end_date" value="{{ end_date }}">
+        {% endif %}
+        <div class="col-md-3">
+          <label class="form-label">Export Format</label>
+          <select name="format" class="form-select">
+            <option value="excel">Excel</option>
+            <option value="pdf">PDF</option>
+          </select>
+        </div>
+        {% if view == 'unique' %}
+          <div class="col-md-3">
+            <label class="form-label">Export Type</label>
+            <select name="scope" id="exportScope" class="form-select">
+              <option value="all">All phone numbers</option>
+              <option value="service">Specific service</option>
+              <option value="network">Specific network</option>
+            </select>
+          </div>
+          <div class="col-md-3" id="serviceScopeWrap">
+            <label class="form-label">Service to Export</label>
+            <select name="scope_value_service" id="serviceScopeValue" class="form-select">
+              <option value="">Choose service</option>
+              {% for name in service_options %}
+                <option value="{{ name }}" {% if service_filter == name %}selected{% endif %}>{{ name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3 d-none" id="networkScopeWrap">
+            <label class="form-label">Network to Export</label>
+            <select name="scope_value_network" id="networkScopeValue" class="form-select">
+              <option value="">Choose network</option>
+              {% for name in network_options %}
+                <option value="{{ name }}" {% if network_filter == name %}selected{% endif %}>{{ name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <input type="hidden" name="scope_value" id="scopeValueHidden" value="">
+        {% else %}
+          <input type="hidden" name="scope" value="all">
+          <div class="col-md-6">
+            <label class="form-label">Export Range</label>
+            <div class="form-control bg-light">
+              {% if date_mode == 'custom' and start_date and end_date %}
+                New numbers from {{ start_date }} to {{ end_date }}
+              {% else %}
+                All new numbers
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+        <div class="col-md-3 d-grid">
+          <button class="btn btn-success" type="submit">
+            <i class="bi bi-download me-1"></i> Export
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <div class="panel p-3">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <h5 class="mb-0">{% if view == 'new' %}New Phone Numbers{% else %}Unique Phone Numbers{% endif %}</h5>
+        <div class="text-muted small">Showing {{ phone_rows|length }} of {{ total_rows }} records</div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            {% if view == 'new' %}
+              <tr>
+                <th>Phone Number</th>
+                <th>First Network</th>
+                <th>First Service</th>
+                <th>First Order Date</th>
+                <th>First Order ID</th>
+                <th>Total Orders</th>
+                <th>Total Lines</th>
+                <th>Last Order</th>
+              </tr>
+            {% else %}
+              <tr>
+                <th>Phone Number</th>
+                <th>Networks</th>
+                <th>Services</th>
+                <th>Orders</th>
+                <th>Lines</th>
+                <th>First Order</th>
+                <th>Last Order</th>
+                <th>Latest Order ID</th>
+              </tr>
+            {% endif %}
+          </thead>
+          <tbody>
+            {% for row in phone_rows %}
+              {% if view == 'new' %}
+                <tr>
+                  <td class="mono fw-semibold">{{ row.phone }}</td>
+                  <td><span class="service-badge">{{ row.first_network }}</span></td>
+                  <td><span class="service-badge">{{ row.first_service }}</span></td>
+                  <td>{{ row.first_order_at_label }}</td>
+                  <td class="mono">{{ row.first_order_id }}</td>
+                  <td>{{ row.order_count }}</td>
+                  <td>{{ row.line_count }}</td>
+                  <td>{{ row.last_order_at_label }}</td>
+                </tr>
+              {% else %}
+                <tr>
+                  <td class="mono fw-semibold">{{ row.phone }}</td>
+                  <td>
+                    {% for network in row.networks %}
+                      <span class="service-badge">{{ network }}</span>
+                    {% endfor %}
+                  </td>
+                  <td>
+                    {% for service in row.services %}
+                      <span class="service-badge">{{ service }}</span>
+                    {% endfor %}
+                  </td>
+                  <td>{{ row.order_count }}</td>
+                  <td>{{ row.line_count }}</td>
+                  <td>{{ row.first_order_at_label }}</td>
+                  <td>{{ row.last_order_at_label }}</td>
+                  <td class="mono">{{ row.latest_order_id }}</td>
+                </tr>
+              {% endif %}
+            {% else %}
+              <tr>
+                <td colspan="8" class="text-center text-muted py-4">No phone numbers found for the current filters.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if total_pages > 1 %}
+        <nav class="mt-4">
+          <ul class="pagination justify-content-center mb-0">
+            {% for p in range(1, total_pages + 1) %}
+              <li class="page-item {% if p == page %}active{% endif %}">
+                <a class="page-link" href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ p }}">{{ p }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        </nav>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const scope = document.getElementById('exportScope');
+      const serviceWrap = document.getElementById('serviceScopeWrap');
+      const networkWrap = document.getElementById('networkScopeWrap');
+      const serviceValue = document.getElementById('serviceScopeValue');
+      const networkValue = document.getElementById('networkScopeValue');
+      const hidden = document.getElementById('scopeValueHidden');
+      const dateMode = document.getElementById('dateMode');
+      const startDateWrap = document.getElementById('startDateWrap');
+      const endDateWrap = document.getElementById('endDateWrap');
+      const blockBtn = document.getElementById('blockNewNumbersBtn');
+      const guideModalEl = document.getElementById('phoneNumbersGuideModal');
+      const GUIDE_KEY = 'phoneNumbersGuideSeenV1';
+
+      function syncExportScope() {
+        if (!scope || !serviceWrap || !networkWrap || !hidden) return;
+        const mode = scope.value || 'all';
+        serviceWrap.classList.toggle('d-none', mode !== 'service');
+        networkWrap.classList.toggle('d-none', mode !== 'network');
+
+        if (mode === 'service') hidden.value = serviceValue ? (serviceValue.value || '') : '';
+        else if (mode === 'network') hidden.value = networkValue ? (networkValue.value || '') : '';
+        else hidden.value = '';
+      }
+
+      function syncDateMode() {
+        if (!dateMode || !startDateWrap || !endDateWrap) return;
+        const custom = dateMode.value === 'custom';
+        startDateWrap.classList.toggle('d-none', !custom);
+        endDateWrap.classList.toggle('d-none', !custom);
+      }
+
+      if (scope) {
+        scope.addEventListener('change', syncExportScope);
+      }
+      if (serviceValue) {
+        serviceValue.addEventListener('change', syncExportScope);
+      }
+      if (networkValue) {
+        networkValue.addEventListener('change', syncExportScope);
+      }
+      if (dateMode) {
+        dateMode.addEventListener('change', syncDateMode);
+      }
+      if (blockBtn) {
+        blockBtn.addEventListener('click', async function () {
+          const currentlyOn = blockBtn.textContent.indexOf('ON') >= 0;
+          blockBtn.disabled = true;
+          try {
+            const r = await fetch('/admin/phone-numbers/block-new-numbers', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ enabled: !currentlyOn })
+            });
+            const j = await r.json();
+            if (r.ok && j.success) {
+              blockBtn.classList.toggle('btn-danger', !!j.enabled);
+              blockBtn.classList.toggle('btn-outline-success', !j.enabled);
+              blockBtn.textContent = j.enabled ? 'Block New Numbers: ON' : 'Block New Numbers: OFF';
+            } else {
+              alert((j && j.message) || 'Failed to update setting.');
+            }
+          } catch (_e) {
+            alert('Failed to update setting.');
+          }
+          blockBtn.disabled = false;
+        });
+      }
+      if (guideModalEl && window.bootstrap) {
+        try {
+          const seen = localStorage.getItem(GUIDE_KEY);
+          if (seen !== '1') {
+            const guideModal = new bootstrap.Modal(guideModalEl);
+            guideModal.show();
+            guideModalEl.addEventListener('hidden.bs.modal', function () {
+              try { localStorage.setItem(GUIDE_KEY, '1'); } catch (_e) {}
+            }, { once: true });
+          }
+        } catch (_e) {}
+      }
+      syncExportScope();
+      syncDateMode();
+    })();
+  </script>
+</body>
+</html>

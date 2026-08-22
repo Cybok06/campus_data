@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Invite a Friend</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="{{ BRAND_LOGO_URL }}">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body {
+      background: url('https://t4.ftcdn.net/jpg/05/01/97/01/360_F_501970157_DA8dj2g9zkVTRBZoFgz4O2ad0Mpxk2N4.jpg') no-repeat center center fixed;
+      background-size: cover;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .invite-card {
+      backdrop-filter: blur(10px);
+      background: rgb(var(--cd-white-rgb) / 0.20);
+      border: 1px solid rgb(var(--cd-white-rgb) / 0.30);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgb(var(--cd-deep-rgb) / 0.20);
+      padding: 2rem;
+      width: 100%;
+      max-width: 500px;
+      color: var(--cd-card);
+    }
+
+    .invite-card h4 {
+      font-weight: bold;
+    }
+
+    .form-control:read-only {
+      background-color: rgb(var(--cd-white-rgb) /0.3);
+      color: var(--cd-card);
+      border: 1px solid var(--cd-card);
+    }
+
+    .btn i {
+      margin-right: .5rem;
+    }
+
+    .social-btn {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .btn-outline-light:hover {
+      background: white;
+      color: black;
+    }
+  </style>
+</head>
+<body>
+
+<div class="invite-card text-center">
+  <h4><i class="bi bi-gift-fill"></i> Invite a Friend</h4>
+  <p class="mb-3">Share your referral link and earn rewards!</p>
+
+  <div class="mb-3">
+    <label class="form-label fw-semibold">Your Referral Link</label>
+    <div class="input-group">
+      <input id="inviteLink" class="form-control" value="{{ invite_link }}" readonly>
+      <button class="btn btn-outline-light" onclick="copyLink()">
+        <i class="bi bi-clipboard"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="d-grid gap-2 mt-3">
+    <a class="btn btn-success social-btn" target="_blank"
+       href="https://wa.me/?text=Join%20me%20on%20this%20awesome%20platform:%20{{ invite_link }}">
+      <i class="bi bi-whatsapp"></i> WhatsApp
+    </a>
+    <a class="btn btn-warning social-btn" href="sms:?body=Join%20me%20on%20this%20awesome%20platform:%20{{ invite_link }}">
+      <i class="bi bi-chat-dots"></i> SMS
+    </a>
+    <a class="btn btn-primary social-btn" target="_blank"
+       href="https://www.facebook.com/sharer/sharer.php?u={{ invite_link }}">
+      <i class="bi bi-facebook"></i> Facebook
+    </a>
+    <a class="btn btn-info text-white social-btn" target="_blank"
+       href="https://t.me/share/url?url={{ invite_link }}&text=Join%20me%20here!">
+      <i class="bi bi-telegram"></i> Telegram
+    </a>
+  </div>
+</div>
+
+<!-- Toast for Copy -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9999">
+  <div id="copyToast" class="toast align-items-center text-bg-success border-0" role="alert">
+    <div class="d-flex">
+      <div class="toast-body">✅ Link copied to clipboard</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function copyLink() {
+    const input = document.getElementById('inviteLink');
+    navigator.clipboard.writeText(input.value).then(() => {
+      const toast = new bootstrap.Toast(document.getElementById('copyToast'));
+      toast.show();
+    });
+  }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

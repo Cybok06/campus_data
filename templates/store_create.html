@@ -1,0 +1,1640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Create Store</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+  <!-- Fonts & Vendor -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+  <link rel="icon" type="image/png" href="{{ BRAND_LOGO_URL }}">
+
+  <style>
+    :root{
+      --primary:var(--cd-primary);
+      --accent:var(--cd-success);
+      --accent-soft:var(--cd-success-10);
+      --bg:var(--cd-bg);
+      --bg-soft:var(--cd-bg);
+      --card:var(--cd-card);
+      --ring:var(--cd-border);
+      --text:var(--cd-text);
+      --muted:var(--cd-muted);
+      --radius-lg:20px;
+      --radius-md:14px;
+      --shadow-soft:0 18px 48px rgb(var(--cd-deep-rgb) / 0.08);
+      --warn:var(--cd-warning);
+      --bad:var(--cd-error);
+    }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      background-color:var(--bg);
+      color:var(--text);
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      -webkit-font-smoothing:antialiased;
+    }
+
+    /* Header */
+    .page-header{
+      position:sticky;
+      top:0;
+      z-index:1050;
+      background:var(--cd-card);
+      border-bottom:1px solid var(--cd-border);
+      box-shadow:0 8px 24px rgb(var(--cd-deep-rgb) /.04);
+    }
+    .page-header-inner{
+      max-width:1160px;
+      margin:0 auto;
+      padding:.85rem 1rem;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:.75rem;
+    }
+    .header-left{
+      display:flex;
+      align-items:center;
+      gap:.8rem;
+    }
+    .header-logo-pill{
+      width:38px;
+      height:38px;
+      border-radius:999px;
+      display:inline-grid;
+      place-items:center;
+      background:radial-gradient(circle at 30% 0, var(--cd-primary-10), var(--cd-primary));
+      border:1px solid var(--cd-border);
+      box-shadow:0 8px 20px rgb(var(--cd-primary-rgb) / 0.25);
+      color:var(--cd-deep);
+    }
+    .header-title-block{
+      display:flex;
+      flex-direction:column;
+      gap:.05rem;
+    }
+    .header-title{
+      font-size:.98rem;
+      font-weight:800;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      color:var(--cd-text);
+    }
+    .header-sub{
+      font-size:.8rem;
+      color:var(--muted);
+    }
+    .header-actions{
+      display:flex;
+      gap:.4rem;
+      flex-wrap:wrap;
+    }
+    .btn-header-ghost{
+      border-radius:999px;
+      border:1px solid var(--cd-border);
+      padding:.32rem .9rem;
+      font-size:.78rem;
+      display:inline-flex;
+      align-items:center;
+      gap:.3rem;
+      color:var(--cd-text);
+      background:var(--cd-card);
+    }
+    .btn-header-ghost:hover{ background:var(--cd-bg); }
+    .btn-header-ghost.text-danger{
+      color:var(--cd-error)!important;
+      border-color:var(--cd-error-10)!important;
+      background:var(--cd-error-10);
+    }
+
+    /* Layout */
+    .page-main{
+      max-width:1160px;
+      margin:1.4rem auto 5.5rem;
+      padding:0 1rem 0;
+    }
+    .page-main > form{ animation:fadeInUp .35s ease-out; }
+
+    .card-clean{
+      border-radius:var(--radius-lg);
+      border:1px solid var(--cd-border);
+      background:var(--card);
+      box-shadow:var(--shadow-soft);
+    }
+    .card-section-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:.5rem;
+      margin-bottom:.85rem;
+    }
+    .form-section-title{
+      font-weight:700;
+      font-size:.9rem;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--cd-text);
+      display:flex;
+      align-items:center;
+      gap:.4rem;
+    }
+    .title-dot{
+      width:9px;
+      height:9px;
+      border-radius:50%;
+      background:linear-gradient(135deg,var(--cd-success),var(--cd-primary));
+    }
+    .section-sub{ font-size:.8rem; color:var(--muted); }
+
+    .logo-preview{
+      width:64px; height:64px;
+      object-fit:cover;
+      border-radius:18px;
+      border:1px solid var(--cd-border);
+      background:var(--cd-bg);
+      box-shadow:0 10px 26px rgb(var(--cd-deep-rgb) / 0.08);
+    }
+    .hero-preview{
+      height:160px;
+      border-radius:18px;
+      background:var(--cd-bg) center/cover no-repeat;
+      border:1px dashed var(--cd-border);
+      position:relative;
+      overflow:hidden;
+    }
+    .hero-preview::before{
+      content:"HERO PREVIEW";
+      position:absolute;
+      inset:auto 12px 10px auto;
+      font-size:.7rem;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      color:var(--cd-muted);
+      background:rgb(var(--cd-white-rgb) / 0.90);
+      padding:.15rem .5rem;
+      border-radius:999px;
+      border:1px solid var(--cd-border);
+    }
+    .preview-frame{
+      border-radius:18px;
+      border:1px solid var(--cd-border);
+      background:var(--cd-bg);
+      overflow:hidden;
+      min-height:420px;
+    }
+    .preview-frame iframe{
+      width:100%;
+      height:100%;
+      border:0;
+      display:block;
+      background:var(--cd-card);
+    }
+
+    .small-muted{ color:var(--muted); font-size:.79rem; }
+    .kbd{
+      font-size:.79rem;
+      border-radius:6px;
+      padding:0 6px;
+      border:1px solid var(--cd-border);
+      border-bottom-width:2px;
+      background:var(--cd-bg);
+      color:var(--cd-text);
+    }
+
+    .svc-card{
+      border-radius:var(--radius-md);
+      border:1px solid var(--cd-border);
+      background:var(--card);
+      padding:14px;
+      box-shadow:0 14px 38px rgb(var(--cd-deep-rgb) / 0.06);
+    }
+    .offer-row{
+      display:grid;
+      grid-template-columns: 1fr 120px 130px;
+      gap:10px;
+      align-items:flex-start;
+      font-size:.8rem;
+    }
+    .offer-row input[type="number"]{ text-align:right; }
+    .price-cell{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+    }
+    .price-cell .invalid-feedback{
+      text-align:right;
+    }
+    .price-invalid{
+      border-color:var(--bad)!important;
+      box-shadow:0 0 0 1px rgb(var(--cd-error-rgb) / 0.35)!important;
+    }
+    @media (max-width: 576px){
+      .offer-row{ grid-template-columns: 1fr 110px 120px; }
+    }
+    .badge-soft{
+      background:var(--cd-success-10);
+      color:var(--cd-success);
+      border-radius:999px;
+      border:1px solid var(--cd-success-10);
+      padding:.08rem .5rem;
+      font-size:.72rem;
+    }
+
+    /* forms */
+    .form-label{ font-size:.82rem; color:var(--muted); }
+    .form-control,
+    .form-select{
+      font-size:.86rem;
+      border-radius:999px;
+      border:1px solid var(--cd-border);
+      background:var(--cd-card);
+      color:var(--text);
+    }
+    .form-control:focus,
+    .form-select:focus{
+      border-color:var(--primary);
+      outline:none;
+      box-shadow:0 0 0 1px rgb(var(--cd-primary-rgb) / 0.40);
+      background:var(--cd-card);
+      color:var(--text);
+    }
+    .form-control-color{
+      border-radius:999px;
+      padding:.15rem;
+      background:var(--cd-card);
+      border:1px solid var(--cd-border);
+    }
+    .input-group-text{
+      border-radius:999px 0 0 999px;
+      border-color:var(--cd-border);
+      background:var(--cd-bg);
+      color:var(--cd-muted);
+      font-size:.82rem;
+    }
+
+    /* Products UI */
+    .prod-thumb{
+      width:42px; height:42px;
+      border-radius:12px;
+      object-fit:cover;
+      border:1px solid var(--cd-border);
+      background:var(--cd-bg);
+    }
+    .table-clean{
+      border:1px solid var(--cd-border);
+      border-radius:16px;
+      overflow:hidden;
+    }
+    .table-clean table{ margin:0; }
+    .table-clean thead th{
+      font-size:.78rem;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      color:var(--cd-muted);
+      background:var(--cd-bg);
+      border-bottom:1px solid var(--cd-border)!important;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:.4rem;
+      border-radius:999px;
+      border:1px solid var(--cd-border);
+      padding:.25rem .65rem;
+      font-size:.78rem;
+      background:var(--cd-bg);
+      color:var(--cd-text);
+    }
+    .pill.ok{ background:var(--cd-success-10); border-color:var(--cd-success-10); color:var(--cd-success); }
+    .pill.bad{ background:var(--cd-error-10); border-color:var(--cd-error-10); color:var(--cd-error); }
+    .pill.warn{ background:var(--cd-warning-10); border-color:var(--cd-warning-10); color:var(--cd-warning); }
+
+    /* Tabs */
+    .tabs-card{
+      border-radius:18px;
+      border:1px solid var(--cd-border);
+      background:var(--cd-card);
+      padding:12px;
+    }
+    .nav-tabs-clean{
+      border:1px solid var(--cd-border);
+      border-radius:999px;
+      padding:6px;
+      background:var(--cd-bg);
+      gap:6px;
+      display:flex;
+      flex-wrap:wrap;
+    }
+    .nav-tabs-clean .nav-link{
+      border:0!important;
+      border-radius:999px!important;
+      padding:.45rem .9rem;
+      font-size:.82rem;
+      font-weight:600;
+      color:var(--cd-text);
+      background:transparent;
+      display:inline-flex;
+      align-items:center;
+      gap:.45rem;
+    }
+    .nav-tabs-clean .nav-link.active{
+      background:linear-gradient(135deg,var(--cd-primary),var(--cd-primary));
+      color:var(--cd-card);
+      box-shadow:0 14px 36px rgb(var(--cd-primary-rgb) /.28);
+    }
+
+    /* Sticky footer actions */
+    .sticky-actions{
+      position:fixed;
+      inset:auto 0 0 0;
+      z-index:1040;
+      background:var(--cd-card);
+      border-top:1px solid var(--cd-border);
+      box-shadow:0 -10px 30px rgb(var(--cd-deep-rgb) / 0.06);
+    }
+    .sticky-actions-inner{
+      max-width:1160px;
+      margin:0 auto;
+      padding:.7rem 1rem .85rem;
+      display:flex;
+      flex-wrap:wrap;
+      gap:.65rem;
+      align-items:center;
+      justify-content:flex-end;
+    }
+    .btn-outline-secondary{
+      border-radius:999px;
+      border-color:var(--cd-border);
+      color:var(--cd-text);
+      background:var(--cd-card);
+      font-size:.85rem;
+    }
+    .btn-outline-secondary:hover{ background:var(--cd-bg); }
+    .btn-primary{
+      border-radius:999px;
+      border:none;
+      font-size:.86rem;
+      font-weight:600;
+      background:linear-gradient(135deg,var(--cd-primary),var(--cd-primary));
+      color:var(--cd-card);
+      box-shadow:0 18px 45px rgb(var(--cd-primary-rgb) /.35);
+    }
+    .btn-primary:hover{ filter:brightness(.96); }
+
+    /* Toast */
+    .toast-dark{
+      background:var(--cd-text);
+      color:var(--cd-bg);
+      border-radius:999px;
+      border:0;
+      box-shadow:0 18px 40px rgb(var(--cd-deep-rgb) /.35);
+    }
+    .toast-dark .btn-close{ filter:invert(1); }
+
+    hr.my-3{ border-color:var(--cd-border)!important; opacity:1; }
+
+    @keyframes fadeInUp{
+      from{ opacity:0; transform:translateY(10px);}
+      to{ opacity:1; transform:translateY(0);}
+    }
+    @media (max-width: 767.98px){
+      .page-header-inner{ flex-direction:column; align-items:flex-start; }
+      .sticky-actions-inner{ justify-content:space-between; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- HEADER -->
+  <header class="page-header">
+    <div class="page-header-inner">
+      <div class="header-left">
+        <a href="/customer/store" class="btn-header-ghost" aria-label="Back">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+        <div class="header-logo-pill">
+          <i class="bi bi-shop-window"></i>
+        </div>
+        <div class="header-title-block">
+          <div class="header-title">STORE BUILDER</div>
+          <div class="header-sub">Configure branding, theme, offers, contact and products for your public store</div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn-header-ghost" id="btnSuspend" type="button" hidden>
+          <i class="bi bi-pause-circle"></i>
+          <span>Suspend</span>
+        </button>
+        <button class="btn-header-ghost" id="btnResume" type="button" hidden>
+          <i class="bi bi-play-circle"></i>
+          <span>Resume</span>
+        </button>
+        <button class="btn-header-ghost text-danger border-danger-subtle" id="btnDelete" type="button" hidden>
+          <i class="bi bi-trash"></i>
+          <span>Delete</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="page-main">
+    <form id="storeForm" class="row g-4" autocomplete="off">
+
+      <!-- Branding -->
+      <div class="col-12 col-xl-4">
+        <div class="card card-clean p-3 h-100">
+          <div class="card-section-header">
+            <h2 class="form-section-title h6 mb-0"><span class="title-dot"></span>Branding</h2>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Store name</label>
+            <input class="form-control" id="name" maxlength="80" placeholder="e.g. Cytech Store" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Slug (URL)</label>
+            <div class="input-group">
+              <span class="input-group-text">/s/</span>
+              <input class="form-control border-start-0" id="slug" maxlength="64" pattern="[a-z0-9-]+" placeholder="cytech-store" required>
+            </div>
+            <div class="small-muted mt-1">Lowercase letters, numbers, and dashes only.</div>
+          </div>
+
+          <!-- Logo with GridFS (AUTO UPLOAD ON SELECT) -->
+          <div class="mb-3">
+            <label class="form-label">Logo</label>
+            <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
+              <img id="logoPreview" class="logo-preview" alt="Logo" src="https://via.placeholder.com/128x128?text=Logo">
+              <input type="file" id="logo_file" accept="image/*" class="form-control form-control-sm" style="max-width: 260px;">
+              <span class="pill" id="logoUploadState"><i class="bi bi-cloud-arrow-up"></i><span>Auto upload</span></span>
+            </div>
+            <input class="form-control" id="logo_url" placeholder="or paste an image URL (optional)">
+            <div class="small-muted mt-1">Selecting a file uploads automatically and sets <code>logo_url</code> to a <code>/media/…</code> link.</div>
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label">Layout</label>
+            <select class="form-select" id="layout">
+              <option value="grid-2">Two per row (compact)</option>
+              <option value="grid-1">One per row (tall cards)</option>
+              <option value="cards">Masonry cards</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Theme + Hero -->
+      <div class="col-12 col-xl-8">
+        <div class="card card-clean p-3">
+          <div class="card-section-header">
+            <h2 class="form-section-title h6 mb-0"><span class="title-dot"></span>Theme & Hero</h2>
+            <div class="section-sub d-none d-md-block">Pick your colours and landing hero for the public store page.</div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-6 col-md-3">
+              <label class="form-label">Primary</label>
+              <input type="color" class="form-control form-control-color w-100" id="theme_primary" value="var(--cd-primary)">
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label">Accent</label>
+              <input type="color" class="form-control form-control-color w-100" id="theme_accent" value="var(--cd-primary)">
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label">Background</label>
+              <input type="color" class="form-control form-control-color w-100" id="theme_bg" value="var(--cd-bg)">
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label">Text</label>
+              <input type="color" class="form-control form-control-color w-100" id="theme_text" value="var(--cd-deep)">
+            </div>
+
+            <div class="col-12 col-lg-6">
+              <label class="form-label">Hero title</label>
+              <input class="form-control" id="hero_title" maxlength="120" placeholder="Affordable, Reliable Data—Anytime">
+            </div>
+            <div class="col-12 col-lg-6">
+              <label class="form-label">Hero subtitle</label>
+              <input class="form-control" id="hero_subtitle" maxlength="180" placeholder="Fund once, order instantly.">
+            </div>
+
+            <!-- Hero with GridFS (AUTO UPLOAD ON SELECT) -->
+            <div class="col-12">
+              <label class="form-label">Hero background</label>
+              <div class="hero-preview flex-grow-1 mb-2" id="heroPreview" role="img" aria-label="Hero preview"></div>
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <input type="file" id="hero_file" accept="image/*" class="form-control">
+                <span class="pill" id="heroUploadState"><i class="bi bi-cloud-arrow-up"></i><span>Auto upload</span></span>
+              </div>
+              <input class="form-control" id="hero_bg" placeholder="or paste an image URL (optional)">
+              <div class="small-muted mt-1">Selecting a file uploads automatically and sets <code>hero.bg_image</code> to a <code>/media/…</code> link.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Preview -->
+      <div class="col-12">
+        <div class="card card-clean p-3">
+          <div class="card-section-header">
+            <h2 class="form-section-title h6 mb-0"><span class="title-dot"></span>Live Preview</h2>
+            <div class="section-sub" id="previewStatus">Enter a name and slug to enable preview.</div>
+          </div>
+          <div class="preview-frame">
+            <iframe id="livePreview" title="Store preview" loading="lazy"></iframe>
+          </div>
+        </div>
+      </div>
+
+      <!-- ✅ TABS: Data Services vs My Products -->
+      <div class="col-12">
+        <div class="card card-clean p-3">
+          <div class="card-section-header">
+            <h2 class="form-section-title h6 mb-0"><span class="title-dot"></span>Store Modules</h2>
+            <div class="section-sub">Switch between services configuration and products without scrolling.</div>
+          </div>
+
+          <div class="tabs-card">
+            <ul class="nav nav-pills nav-tabs-clean" id="storeTabs" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="tab-services" data-bs-toggle="tab" data-bs-target="#pane-services" type="button" role="tab" aria-controls="pane-services" aria-selected="true">
+                  <i class="bi bi-wifi"></i> Data Services
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tab-products" data-bs-toggle="tab" data-bs-target="#pane-products" type="button" role="tab" aria-controls="pane-products" aria-selected="false">
+                  <i class="bi bi-box-seam"></i> My Products
+                  <span class="badge-soft ms-1" id="prodCountTab">0</span>
+                </button>
+              </li>
+            </ul>
+
+            <div class="tab-content mt-3">
+              <!-- =========================
+                   DATA SERVICES TAB
+              ========================== -->
+              <div class="tab-pane fade show active" id="pane-services" role="tabpanel" aria-labelledby="tab-services" tabindex="0">
+
+                <!-- Services & Pricing -->
+                <div class="card-clean p-3 mb-3" style="box-shadow:none;border-radius:18px;">
+                  <div class="card-section-header">
+                    <h2 class="form-section-title h6 mb-0"><span class="title-dot"></span>Services & Pricing</h2>
+                    <div class="section-sub d-flex flex-wrap gap-2 align-items-center">
+                      <span class="kbd">/</span> to focus search • Pick a service → set a <strong>%</strong> or manual per-offer totals
+                    </div>
+                  </div>
+
+                  <div class="row g-3 mt-1">
+                    <div class="col-12 col-md-4">
+                      <label class="form-label">Default percent (seed)</label>
+                      <div class="input-group">
+                        <input type="number" step="0.1" min="0" max="100" class="form-control" id="default_percent" value="10.0">
+                        <span class="input-group-text">%</span>
+                      </div>
+                      <div class="small-muted mt-1">Prefills the percent for each newly added service.</div>
+                    </div>
+
+                    <div class="col-12 col-md-8">
+                      <label class="form-label">Add service</label>
+                      <div class="d-flex flex-wrap gap-2">
+                        <input id="svcSearch" class="form-control flex-grow-1" placeholder="Search services (press / to focus)" />
+                        <select id="svcPicker" class="form-select" style="max-width:380px;">
+                          <option value="">Choose service…</option>
+                          {% for s in services %}
+                            <option value="{{ s._id_str }}" data-index="{{ loop.index0 }}">{{ s.name }}</option>
+                          {% endfor %}
+                        </select>
+                        <button class="btn btn-outline-secondary" type="button" id="btnAddSvc">
+                          <i class="bi bi-plus-circle"></i> Add
+                        </button>
+                      </div>
+                      <div class="small-muted mt-1">
+                        Only services you add will appear in your store.
+                        <span class="ms-1 badge-soft">Rule: MTN NORMAL & MTN EXPRESS cannot both be selected.</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <hr class="my-3"/>
+                  <div id="pickedWrap" class="d-grid gap-3"></div>
+                </div>
+
+                <!-- Contact -->
+                <div class="card-clean p-3" style="box-shadow:none;border-radius:18px;">
+                  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                    <div class="d-flex align-items-center gap-2">
+                      <i class="bi bi-whatsapp"></i>
+                      <div class="fw-semibold">WhatsApp Contact</div>
+                    </div>
+                    <div class="small-muted">Optional — shown on your public store page.</div>
+                  </div>
+
+                  <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                      <label class="form-label">WhatsApp number</label>
+                      <input class="form-control" id="whatsapp_number" placeholder="e.g. 233553226196">
+                      <div class="small-muted mt-1">Use international format (no spaces): <code>233XXXXXXXXX</code></div>
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                      <label class="form-label">WhatsApp group link</label>
+                      <input class="form-control" id="whatsapp_group_link" placeholder="https://chat.whatsapp.com/...">
+                      <div class="small-muted mt-1">Optional — customers can join your community.</div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- =========================
+                   MY PRODUCTS TAB
+              ========================== -->
+              <div class="tab-pane fade" id="pane-products" role="tabpanel" aria-labelledby="tab-products" tabindex="0">
+                <div class="card-clean p-3" style="box-shadow:none;border-radius:18px;">
+                  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                    <div class="d-flex align-items-center gap-2">
+                      <i class="bi bi-box-seam"></i>
+                      <div class="fw-semibold">Products</div>
+                      <span class="badge-soft" id="prodCount">0</span>
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnRefreshProducts">
+                      <i class="bi bi-arrow-repeat"></i> Refresh
+                    </button>
+                  </div>
+
+                  <!-- Add product form -->
+                  <div class="row g-2 align-items-end">
+                    <div class="col-12 col-md-6">
+                      <label class="form-label">Product name</label>
+                      <input class="form-control" id="prod_name" placeholder="e.g. AirPods Pro">
+                    </div>
+
+                    <div class="col-6 col-md-3">
+                      <label class="form-label">Price (GHS)</label>
+                      <input class="form-control" id="prod_price" type="number" min="0" step="0.01" placeholder="0.00">
+                    </div>
+
+                    <div class="col-6 col-md-3">
+                      <label class="form-label">Quantity</label>
+                      <input class="form-control" id="prod_qty" type="number" min="0" step="1" placeholder="0">
+                    </div>
+
+                    <div class="col-12">
+                      <label class="form-label">Product image</label>
+                      <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <img id="prodPreview" class="prod-thumb" alt="Preview" src="https://via.placeholder.com/80x80?text=+" />
+                        <input type="file" id="prod_file" accept="image/*" class="form-control" style="max-width: 360px;">
+                        <span class="pill" id="prodUploadState"><i class="bi bi-cloud-arrow-up"></i><span>Auto upload</span></span>
+                        <button type="button" class="btn btn-primary" id="btnAddProduct">
+                          <i class="bi bi-plus-circle"></i> Add Product
+                        </button>
+                      </div>
+
+                      <input type="hidden" id="prod_image_url">
+                      <input type="hidden" id="prod_image_id">
+
+                      <div class="small-muted mt-2">
+                        Selecting an image uploads automatically. Then click “Add Product”.
+                      </div>
+                    </div>
+                  </div>
+
+                  <hr class="my-3"/>
+
+                  <!-- Products list -->
+                  <div class="table-clean">
+                    <table class="table table-sm align-middle">
+                      <thead>
+                        <tr>
+                          <th style="width:56px;">Img</th>
+                          <th>Name</th>
+                          <th class="text-end" style="width:120px;">Price</th>
+                          <th class="text-end" style="width:110px;">Qty</th>
+                          <th class="text-end" style="width:70px;">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody id="prodTbody">
+                        <tr><td colspan="5" class="text-center small-muted py-3">No products yet.</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="small-muted mt-2">
+                  Tip: If your slug is new, we auto-save draft first so products can attach to the store.
+                </div>
+              </div>
+
+            </div><!-- /tab-content -->
+          </div><!-- /tabs-card -->
+        </div>
+      </div>
+
+    </form>
+  </main>
+
+  <!-- Sticky actions -->
+  <div class="sticky-actions">
+    <div class="sticky-actions-inner">
+      <div class="me-auto small-muted d-flex align-items-center gap-2">
+        <i class="bi bi-shield-check"></i>
+        Preview opens your store in a new tab before publishing.
+      </div>
+      <button class="btn btn-outline-secondary" id="btnPreview" type="button">
+        <i class="bi bi-eye me-1"></i> Preview
+      </button>
+      <button class="btn btn-primary" id="btnPublish" type="button">
+        <span class="btn-text">Publish</span>
+        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="toast" class="toast toast-dark border-0">
+      <div class="d-flex">
+        <div class="toast-body" id="toastBody">Done</div>
+        <button class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data blobs -->
+  <script id="svc-data" type="application/json">{{ services | tojson }}</script>
+  <script id="store-prefill" type="application/json">{{ (store or {}) | tojson }}</script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+  (function(){
+    const t = new bootstrap.Toast(document.getElementById('toast'), {delay:2200});
+    const toast = (msg)=>{ document.getElementById('toastBody').textContent = msg || 'Done'; t.show(); };
+    const el = (id)=>document.getElementById(id);
+    const fmt = (n)=> (Number(n||0)).toFixed(2);
+
+    // Slugify
+    const slugify=(s)=> (s||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') || 'store';
+    el('name').addEventListener('input', ()=>{ const s=slugify(el('name').value); if(!el('slug').dataset.touched) el('slug').value=s; });
+    el('slug').addEventListener('input', ()=>{ el('slug').dataset.touched='1'; });
+
+    // Logo URL preview
+    el('logo_url').addEventListener('input', ()=>{ el('logoPreview').src = el('logo_url').value || 'https://via.placeholder.com/128x128?text=Logo'; });
+
+    // Hero URL preview
+    const setHeroBg = (u)=>{ el('heroPreview').style.backgroundImage = u ? 'url('+u+')' : 'none'; };
+    el('hero_bg').addEventListener('input', ()=> setHeroBg(el('hero_bg').value.trim()));
+
+    // Live preview (debounced)
+    const previewFrame = el('livePreview');
+    const previewStatus = el('previewStatus');
+    let previewTimer = null;
+    const getSlugValue = ()=> (el('slug').value || '').trim();
+
+    function setPreviewStatus(msg){
+      if(previewStatus) previewStatus.textContent = msg || '';
+    }
+
+    async function updateLivePreview(){
+      if(!previewFrame || !previewStatus) return;
+      const name = (el('name').value || '').trim();
+      const slug = getSlugValue();
+      if(!name || !slug){
+        setPreviewStatus('Enter a name and slug to enable preview.');
+        previewFrame.src = 'about:blank';
+        return;
+      }
+      setPreviewStatus('Saving draft for preview...');
+      const saved = await saveDraftSilently();
+      if(!saved || !saved.success){
+        setPreviewStatus('Preview unavailable until draft saves.');
+        return;
+      }
+      previewFrame.src = '/s/' + encodeURIComponent(slug) + '?preview=1&ts=' + Date.now();
+      setPreviewStatus('Live preview updated.');
+    }
+
+    function queuePreviewUpdate(immediate){
+      if(!previewFrame || !previewStatus) return;
+      if(previewTimer) clearTimeout(previewTimer);
+      previewTimer = setTimeout(updateLivePreview, immediate ? 0 : 700);
+    }
+
+    const previewInputs = [
+      'name','slug','logo_url','layout',
+      'theme_primary','theme_accent','theme_bg','theme_text',
+      'hero_title','hero_subtitle','hero_bg'
+    ];
+    previewInputs.forEach((id)=>{
+      const node = el(id);
+      if(!node) return;
+      const evt = node.tagName === 'SELECT' ? 'change' : 'input';
+      node.addEventListener(evt, ()=> queuePreviewUpdate(false));
+    });
+
+    // ---------- UI pill state helper ----------
+    function setPill(pillEl, mode, text){
+      if(!pillEl) return;
+      pillEl.classList.remove('ok','bad','warn');
+      if(mode) pillEl.classList.add(mode);
+      const span = pillEl.querySelector('span');
+      if(span) span.textContent = text || '';
+    }
+
+    // ---------- GridFS upload helper (AUTO) ----------
+    async function uploadMediaFile(file){
+      if(!file) return null;
+      const fd = new FormData();
+      fd.append('file', file, file.name);
+      const res = await fetch('/api/media', { method:'POST', body: fd });
+      const j = await res.json().catch(()=>({success:false}));
+      if(!j || !j.success) return null;
+      return j.url;
+    }
+
+    function previewLocalImage(file, imgEl){
+      try{
+        const u = URL.createObjectURL(file);
+        imgEl.src = u;
+        setTimeout(()=>{ try{ URL.revokeObjectURL(u); }catch(_){} }, 1500);
+      }catch(_){}
+    }
+
+    // Auto upload Logo when selected
+    el('logo_file').addEventListener('change', async ()=>{
+      const f = el('logo_file').files && el('logo_file').files[0];
+      if(!f) return;
+      previewLocalImage(f, el('logoPreview'));
+      setPill(el('logoUploadState'), 'warn', 'Uploading…');
+      try{
+        const url = await uploadMediaFile(f);
+        if(!url){ setPill(el('logoUploadState'), 'bad', 'Upload failed'); toast('Logo upload failed'); return; }
+        el('logo_url').value = url;
+        el('logoPreview').src = url;
+        setPill(el('logoUploadState'), 'ok', 'Uploaded');
+        toast('Logo uploaded');
+        queuePreviewUpdate(true);
+      }catch(_){
+        setPill(el('logoUploadState'), 'bad', 'Upload failed');
+        toast('Logo upload failed');
+      }
+    });
+
+    // Auto upload Hero when selected
+    el('hero_file').addEventListener('change', async ()=>{
+      const f = el('hero_file').files && el('hero_file').files[0];
+      if(!f) return;
+      setPill(el('heroUploadState'), 'warn', 'Uploading…');
+      try{
+        const url = await uploadMediaFile(f);
+        if(!url){ setPill(el('heroUploadState'), 'bad', 'Upload failed'); toast('Hero upload failed'); return; }
+        el('hero_bg').value = url;
+        setHeroBg(url);
+        setPill(el('heroUploadState'), 'ok', 'Uploaded');
+        toast('Hero uploaded');
+        queuePreviewUpdate(true);
+      }catch(_){
+        setPill(el('heroUploadState'), 'bad', 'Upload failed');
+        toast('Hero upload failed');
+      }
+    });
+
+    // ---------- Robust GB label helpers ----------
+    function formatGb(n){ if(n == null || isNaN(n)) return "-"; const r=Math.round(n); return (Math.abs(n-r)<1e-9?String(r):String(parseFloat(n.toFixed(2))))+" GB"; }
+    function parseMaybeObject(v){
+      if(v && typeof v === "object") return v;
+      if(typeof v !== "string") return null;
+      const s = v.trim();
+      if(!(s.startsWith("{") && s.endsWith("}"))) return null;
+      try{ return JSON.parse(s); }catch(_){}
+      try{
+        const fixed = s.replace(/'/g,'"').replace(/\bNone\b/g,'null').replace(/\bTrue\b/g,'true').replace(/\bFalse\b/g,'false');
+        return JSON.parse(fixed);
+      }catch(_){ return null; }
+    }
+    function gbLabelFromOffer(o){
+      if(o && typeof o.value_text === "string" && o.value_text.trim()){
+        const vt=o.value_text.trim(); const mb=vt.match(/^\s*([0-9]+(?:\.[0-9]+)?)\s*mb\s*$/i);
+        if(mb) return formatGb(parseFloat(mb[1])/1000); if(/gb/i.test(vt)) return vt.replace(/gb/ig,"GB");
+      }
+      let v = o ? o.value : undefined;
+      const maybe = parseMaybeObject(v); if(maybe) v = maybe;
+      let gb = null;
+      if(v && typeof v === "object"){
+        if(v.gb != null && !isNaN(parseFloat(v.gb))) gb = parseFloat(v.gb);
+        else if(v.offer != null && !isNaN(parseFloat(v.offer))) gb = parseFloat(v.offer)/1000;
+        else if(v.volume != null && !isNaN(parseFloat(v.volume))) gb = parseFloat(v.volume)/1000;
+      }
+      if(gb == null && o && o.volume != null && !isNaN(parseFloat(o.volume))) gb = parseFloat(o.volume)/1000;
+      if(gb == null && typeof v === "string"){
+        const g=v.match(/^\s*([0-9]+(?:\.[0-9]+)?)\s*gb\s*$/i); if(g) gb=parseFloat(g[1]);
+        const m=v.match(/^\s*([0-9]+(?:\.[0-9]+)?)\s*mb\s*$/i); if(m) gb=parseFloat(m[1])/1000;
+      }
+      if(gb != null) return formatGb(gb);
+      if(typeof v === "string") return v.replace(/gb/ig,"GB");
+      return "-";
+    }
+
+    function escapeHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+    // Build services master list
+    let SVC = [];
+    try{
+      const arr = JSON.parse(document.getElementById('svc-data')?.textContent || '[]') || [];
+      SVC = arr.map(s => ({
+        _id_str: s._id_str,
+        name: s.name,
+        offers: (s.offers || []).map(o => ({
+          amount: Number.isFinite(Number(o.amount)) ? Number(o.amount) : 0,
+          value: o.value,
+          volume: o.volume,
+          value_text: gbLabelFromOffer(o)
+        }))
+      }));
+    }catch(e){ SVC = []; }
+
+    // Search focus + filter
+    const svcSearch = el('svcSearch');
+    document.addEventListener('keydown',(e)=>{ if(e.key==='/' && !e.target.closest('input,textarea,select')){ e.preventDefault(); svcSearch.focus(); }});
+    svcSearch.addEventListener('input',()=>{
+      const q=(svcSearch.value||'').toLowerCase(); const picker=el('svcPicker');
+      for(const opt of picker.options){
+        if(!opt.value){ opt.hidden=false; continue; }
+        opt.hidden = !opt.textContent.toLowerCase().includes(q);
+      }
+    });
+
+    // MTN EXCLUSIVE RULE (UI)
+    const MTN_NORMAL_NAME  = "mtn normal";
+    const MTN_EXPRESS_NAME = "mtn express";
+    function svcNameLowerById(id){
+      const s = SVC.find(x=>x._id_str===id);
+      return (s && s.name ? String(s.name).toLowerCase().trim() : "");
+    }
+    function isMtnNormalId(id){ return svcNameLowerById(id) === MTN_NORMAL_NAME; }
+    function isMtnExpressId(id){ return svcNameLowerById(id) === MTN_EXPRESS_NAME; }
+    function disablePickerOptionById(id, disabled, reasonText){
+      const opt = el('svcPicker').querySelector('option[value="'+String(id).replace(/"/g,'\\"')+'"]');
+      if(!opt) return;
+      opt.disabled = !!disabled;
+      if(disabled){
+        opt.dataset.disabledReason = reasonText || "Unavailable";
+        opt.textContent = opt.textContent.replace(/\s+\(Unavailable\)$/,'') + " (Unavailable)";
+      }else{
+        opt.textContent = opt.textContent.replace(/\s+\(Unavailable\)$/,'');
+        delete opt.dataset.disabledReason;
+      }
+    }
+
+    // Picked services
+    const pickedWrap = el('pickedWrap');
+    const picker = el('svcPicker');
+    const added = new Map();
+
+    function refreshMtnExclusiveUi(){
+      let hasNormal = false, hasExpress = false;
+      for(const sid of added.keys()){
+        if(isMtnNormalId(sid)) hasNormal = true;
+        if(isMtnExpressId(sid)) hasExpress = true;
+      }
+      const normalSvc = SVC.find(s=>String(s.name||"").toLowerCase().trim() === MTN_NORMAL_NAME);
+      const expressSvc = SVC.find(s=>String(s.name||"").toLowerCase().trim() === MTN_EXPRESS_NAME);
+
+      if(normalSvc)  disablePickerOptionById(normalSvc._id_str,  hasExpress, "MTN EXPRESS already selected");
+      if(expressSvc) disablePickerOptionById(expressSvc._id_str, hasNormal,  "MTN NORMAL already selected");
+    }
+
+    function setRowInvalid(inputEl, baseValue, isInvalid){
+      if(!inputEl) return;
+      const row = inputEl.closest('.offer-row');
+      let feedback = row ? row.querySelector('.invalid-feedback') : null;
+      if(!feedback && row){
+        feedback = document.createElement('div');
+        feedback.className = 'invalid-feedback';
+        const priceCell = inputEl.closest('.price-cell') || inputEl.parentElement;
+        if(priceCell) priceCell.appendChild(feedback);
+      }
+      if(isInvalid){
+        inputEl.classList.add('is-invalid','price-invalid');
+        if(feedback){
+          const baseText = Number.isFinite(baseValue) ? fmt(baseValue) : '0.00';
+          feedback.textContent = 'Customer price cannot be less than system base (GHS ' + baseText + ')';
+        }
+      }else{
+        inputEl.classList.remove('is-invalid','price-invalid');
+        if(feedback) feedback.textContent = '';
+      }
+    }
+
+    function validateOfferRow(row){
+      if(!row) return true;
+      const card = row.closest('.svc-card');
+      const manual = card ? !!card.querySelector('.svc-manual')?.checked : false;
+      const totalInput = row.querySelector('.total');
+      const baseInput = row.querySelector('.base');
+      const baseVal = baseInput ? Number(baseInput.value) : NaN;
+      if(!manual){
+        setRowInvalid(totalInput, baseVal, false);
+        return true;
+      }
+      const raw = totalInput ? String(totalInput.value || '').trim() : '';
+      const totalVal = Number(raw);
+      const isInvalid = !Number.isFinite(baseVal) || !raw || !Number.isFinite(totalVal) || totalVal < baseVal;
+      setRowInvalid(totalInput, baseVal, isInvalid);
+      return !isInvalid;
+    }
+
+    function validateAllManualPricing(){
+      let ok = true;
+      added.forEach((card)=>{
+        const manual = !!card.querySelector('.svc-manual')?.checked;
+        const rows = Array.from(card.querySelectorAll('.offer-row'));
+        if(!manual){
+          rows.forEach(r => validateOfferRow(r));
+          return;
+        }
+        rows.forEach(r => { if(!validateOfferRow(r)) ok = false; });
+      });
+      return ok;
+    }
+
+    function requireValidPricing(){
+      const ok = validateAllManualPricing();
+      if(!ok) toast('Fix pricing errors: customer price cannot be below system base.');
+      return ok;
+    }
+
+    el('btnAddSvc').addEventListener('click', ()=> addSelectedService());
+    picker.addEventListener('change', ()=>{ if(picker.value) addSelectedService(); });
+
+    function addSelectedService(sidFromPrefill){
+      const sid = sidFromPrefill || picker.value;
+      if(!sid) return;
+
+      const wantNormal  = isMtnNormalId(sid);
+      const wantExpress = isMtnExpressId(sid);
+      if(wantNormal){
+        for(const k of added.keys()){
+          if(isMtnExpressId(k)){
+            toast('You cannot select both MTN NORMAL and MTN EXPRESS. Remove MTN EXPRESS first.');
+            if(!sidFromPrefill) picker.value='';
+            return;
+          }
+        }
+      }
+      if(wantExpress){
+        for(const k of added.keys()){
+          if(isMtnNormalId(k)){
+            toast('You cannot select both MTN NORMAL and MTN EXPRESS. Remove MTN NORMAL first.');
+            if(!sidFromPrefill) picker.value='';
+            return;
+          }
+        }
+      }
+
+      if(added.has(sid)){ if(!sidFromPrefill){ toast('Service already added.'); picker.value=''; } return; }
+      const s = SVC.find(x=>x._id_str===sid); if(!s){ toast('Service not found.'); return; }
+
+      const startPercent = Number(el('default_percent').value||0);
+      const card = document.createElement('div');
+      card.className='svc-card';
+      card.dataset.sid=sid;
+
+      const rowsHtml = s.offers.map((o,idx)=>{
+        const base = Number.isFinite(Number(o.amount)) ? Number(o.amount) : 0;
+        const total = base + base * (startPercent/100);
+        return (
+          '<div class="offer-row" data-idx="'+idx+'">'+
+            '<div class="text-truncate">'+escapeHtml(o.value_text||'-')+'</div>'+
+            '<input class="form-control form-control-sm base" type="number" value="'+fmt(base)+'" disabled>'+
+            '<div class="price-cell">'+
+              '<input class="form-control form-control-sm total" type="number" min="0" step="0.01" value="'+fmt(total)+'" disabled>'+
+              '<div class="invalid-feedback"></div>'+
+            '</div>'+
+          '</div>'
+        );
+      }).join('');
+
+      card.innerHTML =
+        '<div class="d-flex flex-wrap justify-content-between align-items-center gap-2">'
+        +  '<div class="fw-bold">'+escapeHtml(s.name)+'</div>'
+        +  '<div class="d-flex align-items-center gap-2">'
+        +    '<span class="badge-soft"><span class="me-1">Offers:</span>'+s.offers.length+'</span>'
+        +    '<button type="button" class="btn btn-sm btn-outline-danger btn-remove" aria-label="Remove"><i class="bi bi-x"></i></button>'
+        +  '</div>'
+        +'</div>'
+        +'<div class="row g-3 mt-1">'
+        +  '<div class="col-12 col-md-5">'
+        +    '<label class="form-label mb-1">Percent for this service</label>'
+        +    '<div class="input-group">'
+        +      '<input type="number" step="0.1" min="0" max="100" class="form-control svc-percent" value="'+startPercent+'">'
+        +      '<span class="input-group-text">%</span>'
+        +    '</div>'
+        +    '<div class="small-muted">Applied to base unless you switch to manual per-offer totals.</div>'
+        +  '</div>'
+        +  '<div class="col-12 col-md-7 d-flex align-items-end">'
+        +    '<div class="form-check form-switch ms-md-3">'
+        +      '<input class="form-check-input svc-manual" type="checkbox" id="manual_'+sid+'">'
+        +      '<label class="form-check-label small" for="manual_'+sid+'">Manual per-offer amounts</label>'
+        +    '</div>'
+        +  '</div>'
+        +'</div>'
+        +'<div class="mt-3">'
+        +  '<div class="row fw-semibold small text-muted px-2">'
+        +    '<div class="col-6 col-sm-6">Offer</div>'
+        +    '<div class="col-3 col-sm-3 text-end">System Base</div>'
+        +    '<div class="col-3 col-sm-3 text-end">Customer Price</div>'
+        +  '</div>'
+        +  '<div class="d-grid gap-2 mt-1">'+ rowsHtml + '</div>'
+        +  '<div class="d-flex justify-content-end mt-2 small">'
+        +    '<span class="text-muted">Sum: GHS <span class="svc-sum">0.00</span></span>'
+        +  '</div>'
+        +'</div>';
+
+      pickedWrap.appendChild(card);
+      added.set(sid, card);
+
+      if(!sidFromPrefill){
+        const opt = picker.querySelector('option[value="'+sid.replace(/"/g,'\\"')+'"]');
+        if(opt) opt.remove();
+        picker.value='';
+      }
+
+      const percentInput = card.querySelector('.svc-percent');
+      const manualCheck  = card.querySelector('.svc-manual');
+      const totalInputs  = Array.from(card.querySelectorAll('.total'));
+      const baseInputs   = Array.from(card.querySelectorAll('.base'));
+      const sumEl        = card.querySelector('.svc-sum');
+
+      const recalcByPercent = ()=>{
+        const p = Number(percentInput.value||0);
+        for(let i=0;i<totalInputs.length;i++){
+          const base = Number(baseInputs[i].value||0);
+          if(!manualCheck.checked){
+            const totalVal = base + base*p/100;
+            totalInputs[i].value = fmt(Number.isFinite(totalVal) ? totalVal : 0);
+            setRowInvalid(totalInputs[i], base, false);
+          }
+        }
+        let sum = 0; for(const ti of totalInputs){ sum += Number(ti.value||0); }
+        sumEl.textContent = fmt(sum);
+      };
+
+      recalcByPercent();
+      percentInput.addEventListener('input', recalcByPercent);
+      manualCheck.addEventListener('change', ()=>{
+        const on=manualCheck.checked;
+        totalInputs.forEach(inp=>inp.disabled=!on);
+        if(!on) recalcByPercent();
+        validateAllManualPricing();
+      });
+      totalInputs.forEach(inp=>inp.addEventListener('input', ()=>{
+        if(manualCheck.checked){
+          validateOfferRow(inp.closest('.offer-row'));
+        }
+        let sum=0; totalInputs.forEach(x=> sum += Number(x.value||0));
+        sumEl.textContent=fmt(sum);
+      }));
+
+      card.querySelector('.btn-remove').addEventListener('click', ()=>{
+        added.delete(sid);
+        card.remove();
+        const svc=SVC.find(x=>x._id_str===sid);
+        if(svc){
+          const o=document.createElement('option');
+          o.value=svc._id_str; o.textContent=svc.name;
+          picker.appendChild(o);
+        }
+        refreshMtnExclusiveUi();
+      });
+
+      refreshMtnExclusiveUi();
+    }
+
+    // ---------- Store Products logic ----------
+    function currentSlug(){ return (el('slug').value || '').trim(); }
+
+    function resetProdForm(){
+      el('prod_name').value = '';
+      el('prod_price').value = '';
+      el('prod_qty').value = '';
+      el('prod_file').value = '';
+      el('prod_image_url').value = '';
+      el('prod_image_id').value = '';
+      el('prodPreview').src = 'https://via.placeholder.com/80x80?text=+';
+      setPill(el('prodUploadState'), '', 'Auto upload');
+    }
+
+    // Collect payload (AFA REMOVED)
+    function collectPayload(statusWanted){
+      const service_ids = [];
+      const per_service = [];
+      added.forEach((card, sid)=>{
+        service_ids.push(sid);
+        const manual = card.querySelector('.svc-manual').checked;
+        if(manual){
+          const rows = Array.from(card.querySelectorAll('.offer-row'));
+          const svc = SVC.find(x=>x._id_str===sid);
+          const offers = rows.map(r=>{
+            const idx = Number(r.getAttribute('data-idx'));
+            const total = Number(r.querySelector('.total').value || 0);
+            const vt = (svc && svc.offers && svc.offers[idx] && svc.offers[idx].value_text) ? svc.offers[idx].value_text : '-';
+            return { index: idx, value_text: vt, total: Number(total.toFixed(2)) };
+          });
+          per_service.push({ service_id: sid, offers });
+        }else{
+          const p = Number(card.querySelector('.svc-percent').value || 0);
+          per_service.push({ service_id: sid, percent: Number(p.toFixed(2)) });
+        }
+      });
+
+      return {
+        name: el('name').value.trim(),
+        slug: el('slug').value.trim(),
+        logo_url: el('logo_url').value.trim(),
+        layout: el('layout').value,
+        theme: {
+          primary: el('theme_primary').value,
+          accent: el('theme_accent').value,
+          bg: el('theme_bg').value,
+          text: el('theme_text').value
+        },
+        hero: {
+          title: el('hero_title').value.trim(),
+          subtitle: el('hero_subtitle').value.trim(),
+          bg_image: el('hero_bg').value.trim()
+        },
+        service_scope: "selected",
+        service_ids,
+        pricing: { mode: "mixed", percent_default: Number(el('default_percent').value || 0), per_service },
+        contact: {
+          whatsapp_number: (el('whatsapp_number').value || '').trim(),
+          whatsapp_group_link: (el('whatsapp_group_link').value || '').trim()
+        },
+        status: statusWanted
+      };
+    }
+
+    async function saveDraftSilently(){
+      if(!requireValidPricing()){
+        return { success:false };
+      }
+      const name = (el('name').value || '').trim();
+      const slug = (el('slug').value || '').trim();
+      if(!name || !slug){
+        toast('Enter Store name and Slug first.');
+        return { success:false };
+      }
+      const payload = collectPayload('draft');
+      const r = await fetch('/api/stores/preview', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const j = await r.json().catch(()=>({success:false}));
+      if(!j.success) toast(j.message || 'Could not save draft (check services rules).');
+      return j;
+    }
+
+    // Product image upload (Cloudflare) - auto upload on select
+    async function uploadProductImageAuto(){
+      const f = el('prod_file').files && el('prod_file').files[0];
+      if(!f) return null;
+
+      try{
+        const u = URL.createObjectURL(f);
+        el('prodPreview').src = u;
+        setTimeout(()=>{ try{ URL.revokeObjectURL(u); }catch(_){} }, 1500);
+      }catch(_){}
+
+      setPill(el('prodUploadState'), 'warn', 'Uploading…');
+
+      const fd = new FormData();
+      fd.append('image', f, f.name);
+
+      const res = await fetch('/api/store-products/upload_image', { method:'POST', body: fd });
+      const j = await res.json().catch(()=>({success:false}));
+      if(!j || !j.success){
+        setPill(el('prodUploadState'), 'bad', 'Upload failed');
+        toast((j && (j.error || j.message)) || 'Product image upload failed');
+        return null;
+      }
+      el('prod_image_url').value = j.image_url || '';
+      el('prod_image_id').value = j.image_id || '';
+      el('prodPreview').src = j.image_url || 'https://via.placeholder.com/80x80?text=+';
+      setPill(el('prodUploadState'), 'ok', 'Uploaded');
+      toast('Product image uploaded');
+      return j;
+    }
+    el('prod_file').addEventListener('change', uploadProductImageAuto);
+
+    async function fetchProducts(){
+      const slug = currentSlug();
+      if(!slug){
+        el('prodCount').textContent = '0';
+        el('prodCountTab').textContent = '0';
+        el('prodTbody').innerHTML = '<tr><td colspan="5" class="text-center small-muted py-3">Enter a slug to manage products.</td></tr>';
+        return;
+      }
+
+      const saved = await saveDraftSilently();
+      if(!saved || !saved.success){
+        el('prodCount').textContent = '0';
+        el('prodCountTab').textContent = '0';
+        el('prodTbody').innerHTML = '<tr><td colspan="5" class="text-center small-muted py-3">Unable to load products until draft saves successfully.</td></tr>';
+        return;
+      }
+
+      const res = await fetch('/api/store-products/mine?slug='+encodeURIComponent(slug));
+      const j = await res.json().catch(()=>({success:false, products:[]}));
+      if(!j.success){
+        el('prodTbody').innerHTML = '<tr><td colspan="5" class="text-center small-muted py-3">'+escapeHtml(j.message||'Could not load products')+'</td></tr>';
+        el('prodCount').textContent = '0';
+        el('prodCountTab').textContent = '0';
+        return;
+      }
+      const rows = j.products || [];
+      el('prodCount').textContent = String(rows.length);
+      el('prodCountTab').textContent = String(rows.length);
+
+      if(!rows.length){
+        el('prodTbody').innerHTML = '<tr><td colspan="5" class="text-center small-muted py-3">No products yet.</td></tr>';
+        return;
+      }
+
+      el('prodTbody').innerHTML = rows.map(p => {
+        const img = p.image_url || 'https://via.placeholder.com/80x80?text=+';
+        const price = Number(p.price||0).toFixed(2);
+        const qty = Number(p.quantity||0);
+        return `
+          <tr>
+            <td><img class="prod-thumb" src="${escapeHtml(img)}" alt="img"></td>
+            <td class="fw-semibold">${escapeHtml(p.name||'')}</td>
+            <td class="text-end">GHS ${escapeHtml(price)}</td>
+            <td class="text-end">${escapeHtml(qty)}</td>
+            <td class="text-end">
+              <button type="button" class="btn btn-sm btn-outline-danger" data-del="${escapeHtml(p.id)}" title="Delete">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      el('prodTbody').querySelectorAll('[data-del]').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          const id = btn.getAttribute('data-del');
+          if(!id) return;
+          if(!confirm('Delete this product?')) return;
+          const r = await fetch('/api/store-products/'+encodeURIComponent(id)+'?slug='+encodeURIComponent(currentSlug()), { method:'DELETE' });
+          const jj = await r.json().catch(()=>({success:false}));
+          if(jj.success){ toast('Product deleted'); fetchProducts(); }
+          else toast(jj.message || 'Delete failed');
+        });
+      });
+    }
+
+    async function addProduct(){
+      const slug = currentSlug();
+      if(!slug){ toast('Enter a slug first'); return; }
+
+      const saved = await saveDraftSilently();
+      if(!saved || !saved.success) return;
+
+      const name = (el('prod_name').value||'').trim();
+      const price = Number(el('prod_price').value||0);
+      const qty = Number(el('prod_qty').value||0);
+      const image_url = (el('prod_image_url').value||'').trim();
+      const image_id = (el('prod_image_id').value||'').trim();
+
+      if(!name){ toast('Product name required'); return; }
+      if(!image_url){ toast('Select a product image (auto upload).'); return; }
+      if(!price || price <= 0){ toast('Price must be greater than 0'); return; }
+      if(qty < 0){ toast('Quantity cannot be negative'); return; }
+
+      const payload = { store_slug: slug, name, image_url, image_id, price, quantity: qty };
+
+      const res = await fetch('/api/store-products', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const j = await res.json().catch(()=>({success:false}));
+      if(!j.success){ toast(j.message || 'Could not add product'); return; }
+
+      toast('Product added');
+      resetProdForm();
+      fetchProducts();
+    }
+
+    el('btnAddProduct').addEventListener('click', addProduct);
+    el('btnRefreshProducts').addEventListener('click', fetchProducts);
+    el('tab-products').addEventListener('shown.bs.tab', ()=> fetchProducts());
+
+    // API helpers
+    async function upsert(payload){
+      const r = await fetch('/api/stores', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      return r.json();
+    }
+    async function saveDraft(){
+      if(!requireValidPricing()){
+        return { success:false };
+      }
+      const payload = collectPayload('draft');
+      const r = await fetch('/api/stores/preview', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      return r.json();
+    }
+    async function changeStatus(slug, status){
+      const r = await fetch('/api/stores/'+encodeURIComponent(slug)+'/status', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status}) });
+      return r.json();
+    }
+    async function deleteStore(slug){
+      const r = await fetch('/api/stores/'+encodeURIComponent(slug), { method:'DELETE' });
+      return r.json();
+    }
+
+    // Buttons
+    el('btnPreview').addEventListener('click', async ()=>{
+      const j = await saveDraft();
+      if(j.success){
+        const slug = currentSlug() || 'store';
+        window.open('/s/'+encodeURIComponent(slug)+'?preview=1','_blank');
+      }else{
+        toast(j.message || 'Preview failed.');
+      }
+    });
+
+    el('btnPublish').addEventListener('click', async ()=>{
+      if(!document.getElementById('storeForm').reportValidity()) return;
+      if(!requireValidPricing()) return;
+      const btn = el('btnPublish');
+      btn.disabled = true;
+      const txt = btn.querySelector('.btn-text');
+      const sp = btn.querySelector('.spinner-border');
+      txt.classList.add('d-none'); sp.classList.remove('d-none');
+
+      try{
+        const payload = collectPayload('published');
+        const j = await upsert(payload);
+        if(j.success){
+          toast('Store published!');
+          window.location.href = '/s/'+encodeURIComponent(j.slug);
+        }else toast(j.message || 'Could not publish.');
+      }catch(_){ toast('Network error.'); }
+
+      txt.classList.remove('d-none'); sp.classList.add('d-none'); btn.disabled = false;
+    });
+
+    const btnSuspend = el('btnSuspend'), btnResume = el('btnResume'), btnDelete = el('btnDelete');
+
+    function setHeaderBtn(btn, iconClass, label, disabled){
+      btn.innerHTML = `<i class="bi ${iconClass}"></i><span>${label}</span>`;
+      btn.disabled = !!disabled;
+    }
+
+    function updateHeaderControls(status, slug){
+      const hasSlug = !!(slug || currentSlug());
+      btnDelete.hidden = !hasSlug;
+
+      if(status === 'suspended'){
+        btnSuspend.hidden = false;
+        setHeaderBtn(btnSuspend, 'bi-pause-circle', 'Suspended', true);
+        btnResume.hidden = false;
+        setHeaderBtn(btnResume, 'bi-play-circle', 'Resume', false);
+      }else if(status === 'published'){
+        btnSuspend.hidden = false;
+        setHeaderBtn(btnSuspend, 'bi-pause-circle', 'Suspend', false);
+        btnResume.hidden = true;
+      }else{
+        btnSuspend.hidden = true;
+        btnResume.hidden = true;
+      }
+    }
+
+    btnSuspend.addEventListener('click', async ()=>{
+      const slug = currentSlug(); if(!slug) return;
+      if(btnSuspend.disabled) return;
+      const j = await changeStatus(slug, 'suspended');
+      if(j.success){ toast('Store suspended.'); updateHeaderControls('suspended', slug); }
+      else toast(j.message || 'Failed to suspend.');
+    });
+
+    btnResume.addEventListener('click', async ()=>{
+      const slug = currentSlug(); if(!slug) return;
+      const j = await changeStatus(slug, 'published');
+      if(j.success){ toast('Store resumed.'); updateHeaderControls('published', slug); }
+      else toast(j.message || 'Failed to resume.');
+    });
+
+    btnDelete.addEventListener('click', async ()=>{
+      const slug = currentSlug(); if(!slug) return;
+      if(!confirm('Delete this store?')) return;
+      const j = await deleteStore(slug);
+      if(j.success){ toast('Store deleted.'); location.href = '/customer_dashboard'; }
+      else toast(j.message || 'Delete failed.');
+    });
+
+    // Prefill store
+    async function prefill(){
+      let store = {};
+      try{ store = JSON.parse(document.getElementById('store-prefill')?.textContent || '{}') || {}; }catch(_){}
+
+      if(!store || !store.slug){
+        try{
+          const r = await fetch('/api/stores/mine');
+          const j = await r.json();
+          if(j.success && j.store) store = j.store || {};
+        }catch(_){}
+      }
+
+      if(!store || !store.slug){
+        updateHeaderControls('draft','');
+        refreshMtnExclusiveUi();
+        return;
+      }
+
+      el('name').value = store.name || '';
+      el('slug').value = store.slug || '';
+      el('slug').dataset.touched = '1';
+
+      el('logo_url').value = store.logo_url || '';
+      el('logoPreview').src = store.logo_url || 'https://via.placeholder.com/128x128?text=Logo';
+
+      el('layout').value = store.layout || 'grid-2';
+
+      const theme = store.theme || {};
+      el('theme_primary').value = theme.primary || 'var(--cd-primary)';
+      el('theme_accent').value  = theme.accent  || 'var(--cd-primary)';
+      el('theme_bg').value      = theme.bg      || 'var(--cd-bg)';
+      el('theme_text').value    = theme.text    || 'var(--cd-deep)';
+
+      const hero = store.hero || {};
+      el('hero_title').value    = hero.title    || '';
+      el('hero_subtitle').value = hero.subtitle || '';
+      el('hero_bg').value       = hero.bg_image || '';
+      setHeroBg(hero.bg_image || '');
+
+      // contact
+      const contact = store.contact || {};
+      el('whatsapp_number').value = contact.whatsapp_number || '';
+      el('whatsapp_group_link').value = contact.whatsapp_group_link || '';
+
+      const pricing = store.pricing || {};
+      el('default_percent').value = Number(pricing.percent_default || 0).toFixed(1);
+
+      const svcIds = (store.service_ids || []);
+      const perMap = {};
+      for(const x of (pricing.per_service || [])){
+        perMap[String(x.service_id)] = { percent: x.percent, offers: x.offers || [] };
+      }
+
+      for(const sid of svcIds){
+        addSelectedService(sid);
+
+        const card = [...document.querySelectorAll('.svc-card')].find(c=>c.dataset.sid===sid);
+        if(!card) continue;
+
+        const cfg = perMap[sid] || {};
+        const percentInput = card.querySelector('.svc-percent');
+        const manualCheck  = card.querySelector('.svc-manual');
+        const totals = [...card.querySelectorAll('.total')];
+
+        if(cfg.offers && cfg.offers.length){
+          manualCheck.checked = true;
+          totals.forEach(inp=> inp.disabled=false);
+          cfg.offers.forEach(o=>{
+            const row = card.querySelector('.offer-row[data-idx="'+o.index+'"]');
+            if(row){
+              const ti = row.querySelector('.total');
+              ti.value = Number(o.total||0).toFixed(2);
+            }
+          });
+          let sum=0; totals.forEach(x=> sum += Number(x.value||0));
+          card.querySelector('.svc-sum').textContent = fmt(sum);
+        }else if(cfg.percent != null){
+          percentInput.value = Number(cfg.percent||0).toFixed(1);
+          percentInput.dispatchEvent(new Event('input'));
+        }
+      }
+
+      validateAllManualPricing();
+      updateHeaderControls(store.status || 'draft', store.slug);
+      refreshMtnExclusiveUi();
+      el('prodCountTab').textContent = (store.products_count != null) ? String(store.products_count) : el('prodCountTab').textContent;
+      queuePreviewUpdate(true);
+    }
+
+    prefill();
+  })();
+  </script>
+</body>
+</html>

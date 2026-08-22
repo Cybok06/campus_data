@@ -1,0 +1,551 @@
+<!-- templates/admin_customers.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Customer List - Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="{{ BRAND_LOGO_URL }}">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root{
+      --sea-blue:var(--cd-primary);
+      --ok:var(--cd-success); --ok-soft:var(--cd-success-10);
+      --bad:var(--cd-error); --bad-soft:var(--cd-error-10);
+      --muted:var(--cd-muted);
+      --border:var(--cd-border);
+      --chip:var(--cd-primary)1a;
+    }
+    @media (min-width: 992px){ .admin-content{ margin-left:260px; padding:2rem; } }
+    @media (max-width: 991px){ .admin-content{ margin-top:1rem; padding:1rem; } }
+
+    .page-title{ display:flex; align-items:center; gap:.6rem; }
+    .page-title i{ color:var(--sea-blue); }
+
+    .filter-card{ border:1px solid var(--border); border-radius:14px; background:var(--cd-card); }
+    .filter-card .form-control, .filter-card .form-select{ border-radius:10px; }
+
+    /* Card Grid */
+    .cards{ display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:16px; }
+    .cust-card{ border:1px solid var(--border); border-radius:16px; overflow:hidden; transition:transform .15s ease, box-shadow .15s ease; background:var(--cd-card); }
+    .cust-card:hover{ transform:translateY(-2px); box-shadow:0 8px 24px rgb(var(--cd-deep-rgb) / 0.08); }
+
+    .card-top{ display:flex; gap:12px; align-items:center; padding:14px 14px 0 14px; }
+    .avatar{
+      width:56px; height:56px; border-radius:999px; display:grid; place-items:center;
+      font-size:28px; user-select:none; flex:0 0 auto;
+      background: radial-gradient(circle at 30% 30%, rgb(var(--cd-white-rgb) / 0.80), transparent 60%),
+                  linear-gradient(135deg, var(--cd-primary-10), var(--cd-soft-violet));
+      border:2px solid var(--cd-card); box-shadow:0 2px 6px rgb(var(--cd-deep-rgb) / 0.06);
+    }
+
+    .name-wrap{ flex:1 1 auto; min-width:0; }
+    .name{ font-weight:700; font-size:1.05rem; }
+    .uname{ color:var(--muted); font-size:.9rem; word-break:break-all; }
+
+    .status-badge{
+      padding:.25rem .55rem; border-radius:999px; font-weight:700; font-size:.75rem;
+      border:1px solid transparent; white-space:nowrap;
+    }
+    .st-active{ background:var(--ok-soft); color:var(--ok); border-color:var(--cd-success-10); }
+    .st-blocked{ background:var(--bad-soft); color:var(--bad); border-color:var(--cd-error-10); }
+
+    .card-body{ padding:12px 14px 0 14px; }
+    .kv{ display:flex; gap:.5rem; align-items:center; color:var(--cd-deep); font-size:.92rem; }
+    .kv i{ color:var(--muted); }
+
+    .chips{ display:flex; gap:6px; flex-wrap:wrap; margin-top:.35rem; }
+    .chip{ background:var(--chip); color:var(--cd-primary); border:1px dashed var(--cd-primary-10); padding:.15rem .5rem; border-radius:999px; font-size:.73rem; font-weight:600; }
+
+    .card-foot{ display:flex; gap:8px; padding:12px 14px 14px 14px; border-top:1px solid var(--border); }
+    .btn-ghost{ border:1px solid var(--border); background:var(--cd-card); }
+    .btn-ghost:hover{ border-color:var(--cd-border); background:var(--cd-bg); }
+
+    /* Modal header color */
+    .modal-header{ background-color: var(--sea-blue); color:var(--cd-card); }
+
+    /* Toast z-index */
+    .toast{ z-index:1080; }
+  </style>
+</head>
+<body>
+  {% include 'admin_sidebar.html' %}
+
+  <div class="admin-content">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="page-title mb-0"><i class="bi bi-people-fill fs-4"></i> All Registered Customers</h2>
+    </div>
+
+    <!-- Search & Filters -->
+    <form method="get" class="filter-card p-3 mb-4">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label">Search</label>
+          <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Name, phone, username, etc.">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Referral</label>
+          <input type="text" name="referral" value="{{ referral }}" class="form-control" placeholder="Referral code">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">WhatsApp?</label>
+          <select name="has_whatsapp" class="form-select">
+            <option value="">Any</option>
+            <option value="1" {% if has_whatsapp == '1' %}selected{% endif %}>Yes</option>
+            <option value="0" {% if has_whatsapp == '0' %}selected{% endif %}>No</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Email?</label>
+          <select name="has_email" class="form-select">
+            <option value="">Any</option>
+            <option value="1" {% if has_email == '1' %}selected{% endif %}>Yes</option>
+            <option value="0" {% if has_email == '0' %}selected{% endif %}>No</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Status</label>
+          <select name="status" class="form-select">
+            <option value="">Any</option>
+            <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+            <option value="blocked" {% if status == 'blocked' %}selected{% endif %}>Blocked</option>
+          </select>
+        </div>
+        <div class="col-md-1 d-grid">
+          <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
+        </div>
+      </div>
+    </form>
+
+    <!-- Card Grid -->
+    <div class="cards">
+      {% for c in customers %}
+      {% set st = (c.status or 'active') %}
+      <div class="cust-card">
+        <div class="card-top">
+          <div class="avatar" data-avatar-idx="{{ loop.index0 }}">🐾</div>
+          <div class="name-wrap">
+            <div class="name text-truncate">
+              {{ (c.first_name or '') ~ ' ' ~ (c.last_name or '') }}
+            </div>
+            <div class="uname text-truncate">@{{ c.username }}</div>
+          </div>
+          <div class="ms-auto">
+            {% if st == 'blocked' %}
+              <span class="status-badge st-blocked"><i class="bi bi-shield-exclamation me-1"></i>Blocked</span>
+            {% else %}
+              <span class="status-badge st-active"><i class="bi bi-shield-check me-1"></i>Active</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="kv mb-1"><i class="bi bi-envelope"></i><span>{{ c.email or '—' }}</span></div>
+          <div class="kv mb-1"><i class="bi bi-telephone"></i><span>{{ c.phone or '—' }}</span></div>
+          <div class="kv mb-1"><i class="bi bi-building"></i><span>{{ c.business_name or '—' }}</span></div>
+          <div class="kv mb-1"><i class="bi bi-whatsapp"></i><span>{{ c.whatsapp or '—' }}</span></div>
+          <div class="chips">
+            {% if c.referral %}<span class="chip"><i class="bi bi-people"></i> Referral: {{ c.referral }}</span>{% endif %}
+            <span class="chip"><i class="bi bi-award"></i> Stage: {{ c.customer_stage or 'Normal' }}</span>
+            {% if c.status_updated_at %}<span class="chip"><i class="bi bi-clock-history"></i> {{ c.status_updated_at.strftime('%Y-%m-%d %H:%M') }}</span>{% endif %}
+          </div>
+        </div>
+
+        <div class="card-foot">
+          <!-- Edit -->
+          <button
+            class="btn btn-ghost edit-btn flex-grow-1"
+            data-bs-toggle="modal"
+            data-bs-target="#editModal"
+            data-id="{{ c._id|string }}"
+            data-first_name="{{ c.first_name }}"
+            data-last_name="{{ c.last_name }}"
+            data-username="{{ c.username }}"
+            data-email="{{ c.email }}"
+            data-phone="{{ c.phone }}"
+            data-business_name="{{ c.business_name }}"
+            data-whatsapp="{{ c.whatsapp }}"
+            data-referral="{{ c.referral }}"
+            data-customer_stage="{{ c.customer_stage or '' }}">
+            <i class="bi bi-pencil-square me-1"></i> Edit
+          </button>
+
+          <!-- Block / Unblock -->
+          {% if st == 'blocked' %}
+          <button class="btn btn-success flex-grow-1"
+                  title="Unblock customer"
+                  onclick="toggleBlock('{{ c._id|string }}', false)">
+            <i class="bi bi-unlock me-1"></i> Unblock
+          </button>
+          {% else %}
+          <button class="btn btn-outline-danger flex-grow-1"
+                  title="Block customer"
+                  onclick="toggleBlock('{{ c._id|string }}', true)">
+            <i class="bi bi-lock me-1"></i> Block
+          </button>
+          {% endif %}
+
+          <!-- Reset Link -->
+          <button class="btn btn-outline-secondary flex-grow-1"
+                  onclick="openResetModal('{{ c._id|string }}')"
+                  title="Generate one-time password reset link">
+            <i class="bi bi-link-45deg me-1"></i> Reset
+          <button class="btn btn-danger flex-grow-1 open-delete"
+        data-id="{{ c._id }}"
+        data-name="{{ (c.first_name or '') ~ ' ' ~ (c.last_name or '') }}">
+  <i class="bi bi-trash me-1"></i> Delete
+</button>
+
+
+        </div>
+      </div>
+      {% else %}
+        <div class="alert alert-info">No customers found.</div>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <nav class="mt-4">
+      <ul class="pagination justify-content-center">
+        {% for p in range(1, total_pages + 1) %}
+          <li class="page-item {% if p == page %}active{% endif %}">
+            <a class="page-link" href="?{{ base_qs }}&page={{ p }}">{{ p }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    </nav>
+    {% endif %}
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form id="editForm">
+          <div class="modal-header">
+            <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Edit Customer</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="customer_id" name="customer_id">
+            <div class="mb-2"><input type="text" class="form-control" name="first_name" placeholder="First Name"></div>
+            <div class="mb-2"><input type="text" class="form-control" name="last_name" placeholder="Last Name"></div>
+            <div class="mb-2"><input type="text" class="form-control" name="username" placeholder="Username"></div>
+            <div class="mb-2"><input type="email" class="form-control" name="email" placeholder="Email"></div>
+            <div class="mb-2"><input type="text" class="form-control" name="phone" placeholder="Phone"></div>
+            <div class="mb-2"><input type="text" class="form-control" name="business_name" placeholder="Business Name"></div>
+            <div class="mb-2"><input type="text" class="form-control" name="whatsapp" placeholder="WhatsApp"></div>
+            <div class="mb-2"><input type="text" class="form-control" name="referral" placeholder="Referral"></div>
+            <div class="mb-2">
+              <label class="form-label">Customer Stage</label>
+              <select class="form-select" name="customer_stage">
+                <option value="">Keep current</option>
+                <option value="Normal">Normal</option>
+                <option value="Elite">Elite</option>
+                <option value="Premium">Premium</option>
+              </select>
+            </div>
+            <div class="mb-2"><input type="password" class="form-control" name="password" placeholder="New Password (leave blank to keep current)"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+              <i class="bi bi-x-circle"></i> Close
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-save"></i> Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reset Link Modal -->
+  <div class="modal fade" id="resetLinkModal" tabindex="-1" aria-hidden="true" aria-labelledby="resetLinkLabel">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="resetLinkLabel" class="modal-title"><i class="bi bi-link-45deg"></i> Generate Reset Link</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="reset_user_id">
+          <div class="mb-3">
+            <label class="form-label">Expires In (hours)</label>
+            <input type="number" class="form-control" id="ttl_hours" min="1" value="24">
+            <div class="helper mt-1 text-muted">Default is 24 hours. Link is single-use.</div>
+          </div>
+          <div id="resetResult" class="d-none">
+            <label class="form-label">Reset URL</label>
+            <div class="input-group">
+              <input id="resetUrl" type="text" class="form-control" readonly>
+              <button class="btn btn-outline-secondary" type="button" id="copyBtn">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+            <div class="form-text" id="expiresText"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="generateBtn" type="button" class="btn btn-primary">
+            <span class="label"><i class="bi bi-lightning-charge"></i> Generate</span>
+            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+          </button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true" aria-labelledby="deleteLabel">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 id="deleteLabel" class="modal-title"><i class="bi bi-exclamation-triangle"></i> Delete Customer</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="delete_user_id">
+          <p class="mb-2">Are you sure you want to delete <strong id="delete_user_name"></strong>?</p>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="hardDelete">
+            <label class="form-check-label" for="hardDelete">Delete permanently (cannot be undone)</label>
+          </div>
+          <div class="form-text mt-1">If unchecked, we’ll soft-delete the account so it won’t appear in the list.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button id="confirmDeleteBtn" type="button" class="btn btn-danger">
+            <span class="label"><i class="bi bi-trash"></i> Delete</span>
+            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toasts -->
+  <div class="position-fixed bottom-0 end-0 p-3">
+    <div id="mainToast" class="toast align-items-center text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body" id="toastBody">Action completed.</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // ========== Animal avatar assignment (deterministic by card index) ==========
+    const animals = ["🦊","🐼","🦁","🐯","🐨","🐵","🦉","🐸","🐶","🐱","🐰","🦄","🐢","🐧","🐙","🦖","🦕","🦓","🦒","🐘","🦬","🐺","🦔","🦭"];
+    document.querySelectorAll('.avatar').forEach(el=>{
+      const idx = parseInt(el.getAttribute('data-avatar-idx')||'0',10);
+      el.textContent = animals[idx % animals.length];
+    });
+
+    // ===== Edit Modal Prefill =====
+    const editModal = document.getElementById('editModal');
+    editModal.addEventListener('show.bs.modal', event => {
+      const button = event.relatedTarget;
+      document.getElementById('customer_id').value = button.getAttribute('data-id');
+      document.querySelector('#editForm [name="first_name"]').value    = button.getAttribute('data-first_name') || '';
+      document.querySelector('#editForm [name="last_name"]').value     = button.getAttribute('data-last_name') || '';
+      document.querySelector('#editForm [name="username"]').value      = button.getAttribute('data-username') || '';
+      document.querySelector('#editForm [name="email"]').value         = button.getAttribute('data-email') || '';
+      document.querySelector('#editForm [name="phone"]').value         = button.getAttribute('data-phone') || '';
+      document.querySelector('#editForm [name="business_name"]').value = button.getAttribute('data-business_name') || '';
+      document.querySelector('#editForm [name="whatsapp"]').value      = button.getAttribute('data-whatsapp') || '';
+      document.querySelector('#editForm [name="referral"]').value      = button.getAttribute('data-referral') || '';
+      document.querySelector('#editForm [name="customer_stage"]').value = button.getAttribute('data-customer_stage') || '';
+      document.querySelector('#editForm [name="password"]').value      = '';
+    });
+
+    // ===== Save Edits =====
+    document.getElementById('editForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const id = document.getElementById('customer_id').value;
+      const formData = new FormData(this);
+      fetch(`/admin/customers/update/${id}`, { method:'POST', body:formData })
+        .then(res => res.json())
+        .then(data => {
+          showToast(data.message || 'Updated.');
+          if (data.status === 'success') location.reload();
+        })
+        .catch(() => showToast('Network error', true));
+    });
+
+    // ===== Block / Unblock =====
+    async function toggleBlock(id, block) {
+      try {
+        const res = await fetch(`/admin/customers/toggle_block/${id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ block: !!block })
+        });
+        const data = await res.json();
+        showToast(data.message || 'Done');
+        if (data.status === 'success') location.reload();
+      } catch (e) {
+        showToast('Network error while updating status', true);
+      }
+    }
+
+    // ===== Reset Link Flow =====
+    const resetLinkModal = document.getElementById('resetLinkModal');
+    const generateBtn    = document.getElementById('generateBtn');
+    const resetResult    = document.getElementById('resetResult');
+    const resetUrlInput  = document.getElementById('resetUrl');
+    const copyBtn        = document.getElementById('copyBtn');
+    const expiresText    = document.getElementById('expiresText');
+
+    function openResetModal(userId) {
+      document.getElementById('reset_user_id').value = userId;
+      document.getElementById('ttl_hours').value = 24;
+      resetResult.classList.add('d-none');
+      resetUrlInput.value = '';
+      expiresText.textContent = '';
+      new bootstrap.Modal(resetLinkModal).show();
+    }
+
+    generateBtn.addEventListener('click', async () => {
+      const userId = document.getElementById('reset_user_id').value;
+      const ttl = document.getElementById('ttl_hours').value || 24;
+
+      toggleGenerateLoading(true);
+      try {
+        const form = new FormData();
+        form.append('user_id', userId);
+        form.append('ttl_hours', ttl);
+
+        const res = await fetch('/admin/reset/generate', { method:'POST', body:form });
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          resetUrlInput.value = data.reset_url;
+          expiresText.textContent = data.expires_at ? `Expires at: ${new Date(data.expires_at).toLocaleString()}` : '';
+          resetResult.classList.remove('d-none');
+          showToast('Reset link generated.');
+        } else {
+          showToast(data.message || 'Failed to generate link', true);
+        }
+      } catch (e) {
+        showToast('Network error while generating link', true);
+      } finally {
+        toggleGenerateLoading(false);
+      }
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(resetUrlInput.value);
+        showToast('Link copied to clipboard');
+      } catch {
+        resetUrlInput.select();
+        document.execCommand('copy');
+        showToast('Link copied');
+      }
+    });
+
+    function toggleGenerateLoading(on) {
+      const spinner = generateBtn.querySelector('.spinner-border');
+      const label = generateBtn.querySelector('.label');
+      generateBtn.disabled = on;
+      spinner.classList.toggle('d-none', !on);
+      label.classList.toggle('d-none', on);
+    }
+
+    // ===== Delete Flow =====
+    const deleteModal = document.getElementById('deleteModal');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    let _pendingDeleteId = null;
+
+    function openDeleteModal(userId, name) {
+      _pendingDeleteId = userId;
+      document.getElementById('delete_user_id').value = userId;
+      document.getElementById('delete_user_name').textContent = name || 'this customer';
+      document.getElementById('hardDelete').checked = false;
+      new bootstrap.Modal(deleteModal).show();
+    }
+
+    confirmDeleteBtn.addEventListener('click', async () => {
+      const hard = document.getElementById('hardDelete').checked;
+      toggleDeleteLoading(true);
+      try {
+        const res = await fetch(`/admin/customers/delete/${_pendingDeleteId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hard })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          showToast(data.message || (hard ? 'Deleted permanently' : 'Deleted (soft)'));
+          // Reload to reflect removal from listing
+          location.reload();
+        } else {
+          showToast(data.message || 'No action taken', true);
+        }
+      } catch (e) {
+        showToast('Network error while deleting', true);
+      } finally {
+        toggleDeleteLoading(false);
+      }
+    });
+
+    function toggleDeleteLoading(on) {
+      const spinner = confirmDeleteBtn.querySelector('.spinner-border');
+      if (!spinner) {
+        // Create spinner lazily to keep markup clean
+        const sp = document.createElement('span');
+        sp.className = 'spinner-border spinner-border-sm d-none';
+        sp.setAttribute('role', 'status');
+        sp.setAttribute('aria-hidden', 'true');
+        confirmDeleteBtn.appendChild(sp);
+      }
+      const spn = confirmDeleteBtn.querySelector('.spinner-border');
+      const label = confirmDeleteBtn.querySelector('.label') || (function(){
+        const span = document.createElement('span');
+        span.className = 'label';
+        span.innerHTML = '<i class="bi bi-trash"></i> Delete';
+        confirmDeleteBtn.prepend(span);
+        return span;
+      })();
+      confirmDeleteBtn.disabled = on;
+      spn.classList.toggle('d-none', !on);
+      label.classList.toggle('d-none', on);
+    }
+
+    // ===== Toast helper =====
+    function showToast(msg, isError=false) {
+      const toastEl = document.getElementById('mainToast');
+      const body = document.getElementById('toastBody');
+      body.textContent = msg;
+      toastEl.classList.toggle('text-bg-danger', !!isError);
+      toastEl.classList.toggle('text-bg-primary', !isError);
+      new bootstrap.Toast(toastEl, { delay: 2500 }).show();
+    }
+
+    // Expose functions needed by inline handlers
+    window.toggleBlock = toggleBlock;
+    window.openResetModal = openResetModal;
+    window.openDeleteModal = openDeleteModal;
+  </script>
+  <script>
+  // Hook delete buttons without inline JS
+  document.querySelectorAll('.open-delete').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-id');
+      const name = btn.getAttribute('data-name') || 'this customer';
+      openDeleteModal(id, name);
+    });
+  });
+</script>
+
+</body>
+</html>

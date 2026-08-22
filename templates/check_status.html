@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Check Order Status </title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,follow" />
+  <link rel="icon" type="image/png" href="{{ BRAND_LOGO_URL }}">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+
+  <style>
+    :root{
+      --sea:var(--cd-primary);
+      --sea-deep:var(--cd-primary);
+      --bg:var(--cd-bg);
+      --card:var(--cd-card);
+      --text:var(--cd-deep);
+      --muted:var(--cd-muted);
+      --ring: rgb(var(--cd-primary-rgb) / 0.25);
+      --shadow: 0 14px 35px rgb(var(--cd-deep-rgb) / 0.08);
+    }
+
+    body{
+      background:
+        radial-gradient(900px 260px at 20% 0%, var(--cd-primary-15), transparent 55%),
+        radial-gradient(900px 260px at 80% 0%, rgb(var(--cd-success-rgb) /.10), transparent 55%),
+        var(--bg);
+      color:var(--text);
+    }
+
+    /* Optional header bar (keeps your theme) */
+    .topbar{
+      background: linear-gradient(90deg, var(--sea-deep), var(--sea));
+      color:var(--cd-card);
+      box-shadow: 0 10px 26px rgb(var(--cd-deep-rgb) / 0.12);
+    }
+    .brand-badge{
+      display:flex; align-items:center; gap:.75rem;
+      padding:.75rem 0;
+    }
+    .brand-badge img{
+      height:44px; width:44px; border-radius:12px;
+      object-fit:cover; border:2px solid rgb(var(--cd-white-rgb) / 0.25);
+      background:var(--cd-card);
+    }
+    .brand-badge .title{
+      font-weight:800; letter-spacing:.2px;
+      line-height:1.1;
+    }
+    .brand-badge .sub{
+      font-size:.85rem; opacity:.85;
+    }
+
+    .status-card{
+      border:1px solid rgb(var(--cd-deep-rgb) / 0.06);
+      border-radius:18px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+    }
+
+    .search-wrap{
+      display:flex;
+      gap:.75rem;
+      flex-wrap:wrap;
+    }
+    .search-wrap .form-control{
+      border-radius:14px;
+      border:1px solid rgb(var(--cd-deep-rgb) / 0.10);
+      box-shadow:none;
+      padding:.85rem 1rem;
+    }
+    .search-wrap .form-control:focus{
+      border-color: rgb(var(--cd-primary-rgb) / 0.70);
+      box-shadow: 0 0 0 .25rem var(--ring);
+    }
+    .btn-primary{
+      background: linear-gradient(90deg, var(--sea-deep), var(--sea));
+      border:0;
+      border-radius:14px;
+      font-weight:700;
+      padding:.85rem 1rem;
+    }
+    .btn-primary:focus{
+      box-shadow: 0 0 0 .25rem var(--ring);
+    }
+
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:.45rem;
+      padding:.35rem .7rem;
+      border-radius:999px;
+      font-weight:700;
+      font-size:.85rem;
+      border:1px solid rgb(var(--cd-deep-rgb) / 0.08);
+      background:var(--cd-card);
+      white-space:nowrap;
+    }
+
+    .order-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:1rem;
+      flex-wrap:wrap;
+    }
+    .order-meta{
+      color:var(--muted);
+      font-size:.9rem;
+    }
+
+    .table{
+      margin-bottom:0;
+    }
+    .table thead th{
+      font-size:.82rem;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      color:var(--muted);
+      background: rgb(var(--cd-deep-rgb) / 0.02);
+      border-bottom:1px solid rgb(var(--cd-deep-rgb) / 0.08);
+      white-space:nowrap;
+    }
+    .table tbody td{
+      border-top:1px solid rgb(var(--cd-deep-rgb) / 0.06);
+      vertical-align:middle;
+    }
+
+    /* Pro “status” pill for each line */
+    .status-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:.45rem;
+      padding:.35rem .65rem;
+      border-radius:999px;
+      font-weight:800;
+      font-size:.85rem;
+      border:1px solid rgb(var(--cd-deep-rgb) / 0.10);
+      background:var(--cd-card);
+      white-space:nowrap;
+    }
+    .dot{
+      width:.55rem; height:.55rem;
+      border-radius:999px;
+      display:inline-block;
+    }
+
+    /* Line Status colors (Delivered=Green, Processing=Yellow) */
+    .is-delivered{
+      background: rgb(var(--cd-success-rgb) /.10);
+      border-color: rgb(var(--cd-success-rgb) / 0.25);
+      color:var(--cd-success);
+    }
+    .is-delivered .dot{ background:var(--cd-success); }
+
+    .is-processing{
+      background: rgb(var(--cd-warning-rgb) / 0.14);
+      border-color: rgb(var(--cd-warning-rgb) / 0.28);
+      color:var(--cd-warning);
+    }
+    .is-processing .dot{ background:var(--cd-warning); }
+
+    .is-failed{
+      background: rgb(var(--cd-error-rgb) /.10);
+      border-color: rgb(var(--cd-error-rgb) /.25);
+      color:var(--cd-error);
+    }
+    .is-failed .dot{ background:var(--cd-error); }
+
+    .is-pending{
+      background: rgb(var(--cd-muted-rgb) / 0.10);
+      border-color: rgb(var(--cd-muted-rgb) / 0.22);
+      color:var(--cd-muted);
+    }
+    .is-pending .dot{ background:var(--cd-muted); }
+
+    .ref-cell{
+      max-width: 320px;
+    }
+
+    @media (max-width: 576px){
+      .ref-cell{ max-width: 220px; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Optional top bar for a more “pro” look -->
+  <header class="topbar">
+    <div class="container">
+      <div class="brand-badge">
+        <div>
+          <div class="sub">Check Order Status</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container my-4 my-md-5">
+    <!-- Search Card -->
+    <div class="card status-card p-3 p-md-4">
+      <div class="d-flex align-items-start justify-content-between flex-wrap gap-2">
+        <div>
+          <h1 class="h4 mb-1 fw-bold">Track your order</h1>
+          <div class="text-muted">Enter the phone number used during checkout to view status.</div>
+        </div>
+        <div class="text-muted small d-none d-md-block">
+          <i class="bi bi-shield-check me-1"></i> Secure lookup
+        </div>
+      </div>
+
+      <form class="mt-3" method="get" action="/check-status" onsubmit="return normalizeAndSubmit(event)">
+        <div class="search-wrap">
+          <div class="flex-grow-1" style="min-width:260px; max-width:520px;">
+            <label for="phone" class="form-label mb-1 fw-semibold">Phone number</label>
+            <div class="input-group input-group-lg">
+              <span class="input-group-text bg-white" style="border-radius:14px 0 0 14px; border:1px solid rgb(var(--cd-deep-rgb) / 0.10); border-right:0;">
+                <i class="bi bi-telephone"></i>
+              </span>
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                class="form-control"
+                placeholder="0xxxxxxxxx"
+                value="{{ phone or '' }}"
+                inputmode="numeric"
+                maxlength="14"
+                required
+                style="border-left:0; border-radius:0 14px 14px 0;"
+              />
+            </div>
+            <div class="form-text">Tip: You can paste 233xxxxxxxxx — we’ll format it.</div>
+          </div>
+
+          <div class="align-self-end" style="min-width:190px;">
+            <button class="btn btn-primary btn-lg w-100" type="submit">
+              <i class="bi bi-search me-1"></i> Check Status
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    {% if phone %}
+    <div class="mt-4">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <h2 class="h5 mb-0">
+          Results for <span class="text-primary fw-bold">{{ phone }}</span>
+        </h2>
+        <div class="text-muted small">
+          <i class="bi bi-info-circle me-1"></i> Showing latest updates per order
+        </div>
+      </div>
+
+      {% if not results %}
+        <div class="alert alert-info mt-3 mb-0">
+          <i class="bi bi-search me-1"></i>
+          No orders found for this phone number.
+        </div>
+      {% else %}
+        {% for od in results %}
+          <div class="card status-card p-3 p-md-4 mt-3">
+            <div class="order-head">
+              <div>
+                <div class="d-flex align-items-center flex-wrap gap-2">
+                  <div class="fw-bold">
+                    <i class="bi bi-receipt-cutoff me-1"></i>
+                    Order ID: <span class="text-break">{{ od.order_id }}</span>
+                  </div>
+                </div>
+                <div class="order-meta mt-1">
+                  <i class="bi bi-clock-history me-1"></i>
+                  Created: {{ od.created_at }} &middot; Updated: {{ od.updated_at }}
+                </div>
+              </div>
+
+              <div class="d-flex flex-wrap gap-2 justify-content-md-end">
+                <span class="chip">
+                  <i class="bi bi-cash-coin"></i>
+                  Paid: GHS {{ '%.2f'|format(od.paid_amount or 0) }}
+                </span>
+
+                {% set st = (od.status or '').lower() %}
+                {% if st == 'completed' %}
+                  <span class="chip" style="background:rgb(var(--cd-success-rgb) /.10); border-color:rgb(var(--cd-success-rgb) / 0.25); color:var(--cd-success);">
+                    <i class="bi bi-check2-circle"></i> Completed
+                  </span>
+                {% elif st == 'failed' %}
+                  <span class="chip" style="background:rgb(var(--cd-error-rgb) /.10); border-color:rgb(var(--cd-error-rgb) /.25); color:var(--cd-error);">
+                    <i class="bi bi-x-circle"></i> Failed
+                  </span>
+                {% elif st == 'processing' %}
+                  <span class="chip" style="background:rgb(var(--cd-warning-rgb) / 0.14); border-color:rgb(var(--cd-warning-rgb) / 0.28); color:var(--cd-warning);">
+                    <i class="bi bi-arrow-repeat"></i> Processing
+                  </span>
+                {% else %}
+                  <span class="chip">
+                    <i class="bi bi-dot"></i> {{ od.status }}
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="table-responsive mt-3">
+              <table class="table table-sm align-middle">
+                <thead>
+                  <tr>
+                    <th>Service</th>
+                    <th class="text-end">Amount</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for it in od.lines %}
+                    {% set ls = (it.line_status or '')|string %}
+                    {% set ls_l = ls|lower %}
+                    <tr>
+                      <td class="fw-semibold">{{ it.service }}</td>
+                      <td class="text-end">GHS {{ '%.2f'|format(it.amount or 0) }}</td>
+                      <td>{{ it.time }}</td>
+
+                      <!-- ✅ ONLY show Line Status, renamed to Status, with color rules -->
+                      <td>
+                        {% if 'delivered' in ls_l %}
+                          <span class="status-pill is-delivered">
+                            <span class="dot"></span> Delivered
+                          </span>
+                        {% elif 'processing' in ls_l %}
+                          <span class="status-pill is-processing">
+                            <span class="dot"></span> Processing
+                          </span>
+                        {% elif 'fail' in ls_l or 'error' in ls_l %}
+                          <span class="status-pill is-failed">
+                            <span class="dot"></span> {{ it.line_status }}
+                          </span>
+                        {% else %}
+                          <span class="status-pill is-pending">
+                            <span class="dot"></span> {{ it.line_status }}
+                          </span>
+                        {% endif %}
+                      </td>
+
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+    {% endif %}
+  </main>
+
+  <script>
+    function normalizeAndSubmit(ev){
+      ev.preventDefault();
+      var inp = document.getElementById('phone');
+      var d = (inp.value||'').replace(/\D+/g,'');
+      if (d.startsWith('233')) d = '0'+d.slice(3);
+      if (d.length > 10) d = d.slice(-10);
+      inp.value = d;
+      ev.target.submit();
+      return false;
+    }
+  </script>
+</body>
+</html>
+
