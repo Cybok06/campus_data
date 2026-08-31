@@ -71,7 +71,7 @@ MTN_NORMAL_SERVICE_ID = "68b8b6a7eb0ced45901c68d2"
 # ===== Arkesel order alert config ============================================
 ARKESEL_ORDER_SMS_API_KEY = os.getenv(
     "ARKESEL_ORDER_SMS_API_KEY",
-    "TGFhVVZvU3NOclJMZFJwWWJ5U2o",
+    "TGFhVVZvU3Nbnm52OclJMZFJwWWJ5U2o",
 )
 ARKESEL_ORDER_SMS_SENDER_ID = os.getenv("ARKESEL_ORDER_SMS_SENDER_ID", "CAMPUS DATA")
 ARKESEL_ORDER_ALERT_TO = os.getenv("ARKESEL_ORDER_ALERT_TO", "0553226196")
