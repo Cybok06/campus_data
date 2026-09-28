@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin — Orders</title>
+  <link rel="icon" type="image/png" href="{{ BRAND_LOGO_URL }}">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+
+  <style>
+    :root{
+      --primary:var(--cd-primary);--primary-2:var(--cd-primary);--primary-3:var(--cd-primary);
+      --bg:var(--cd-bg);--bg-2:var(--cd-bg);--card:var(--cd-card);--border:var(--cd-border);
+      --text:var(--cd-text);--muted:var(--cd-muted);
+      --ok:var(--cd-success);--ok-soft:var(--cd-success-10);          /* delivered */
+      --warn:var(--cd-warning);--warn-soft:var(--cd-warning-10);      /* pending  */
+      --info:var(--cd-primary);--info-soft:var(--cd-primary-10);      /* processing */
+      --bad:var(--cd-error);--bad-soft:var(--cd-error-10);        /* failed */
+      --violet:var(--cd-accent);--violet-soft:var(--cd-soft-violet);  /* refunded */
+      --teal:var(--cd-success);--teal-soft:var(--cd-primary-10);      /* completed */
+      --shadow-md:0 4px 12px rgb(var(--cd-deep-rgb) / 0.08);
+      --shadow-lg:0 12px 28px rgb(var(--cd-deep-rgb) / 0.12);
+      --radius:16px;
+    }
+
+    body{background:linear-gradient(135deg,var(--bg) 0%,var(--bg-2) 100%);color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+    .container{max-width:1400px}
+    h2{color:var(--primary);font-weight:800;letter-spacing:.2px}
+    .subhead{color:var(--muted)}
+    .chip{display:inline-flex;align-items:center;gap:.5rem;background:var(--cd-soft-violet);color:var(--cd-accent);padding:.4rem .7rem;border-radius:999px;border:1px solid var(--cd-soft-violet);font-size:.82rem}
+
+    /* Sticky header (title + actions) */
+    .sticky-header{position:sticky;top:0;background:linear-gradient(135deg,var(--bg) 0%,var(--bg-2) 100%);
+      z-index:20;padding:.5rem 0 .75rem;margin-bottom:.25rem}
+
+    /* Filters */
+    .filter-bar{display:none;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:1rem 1.25rem;position:sticky;top:4.25rem;z-index:10}
+    .filter-bar.show{display:block}
+    .filter-row{row-gap:.75rem}
+    .form-select,.form-control{border:2px solid var(--border);border-radius:10px;padding:.55rem .8rem}
+    .form-select:focus,.form-control:focus{border-color:var(--primary);box-shadow:0 0 0 .2rem rgb(var(--cd-primary-rgb) / 0.25)}
+
+    /* Filter toggle hint */
+    .filter-toggle{display:flex;gap:.5rem}
+
+    .actions-bar{display:flex;flex-wrap:wrap;gap:.5rem}
+    .btn-icon{display:inline-flex;align-items:center;gap:.5rem}
+
+    .table-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden}
+    table.table{margin:0}
+    thead th{background:linear-gradient(135deg,var(--primary) 0%,var(--primary-2) 100%);color:var(--cd-card);border:none;text-transform:uppercase;font-size:.8rem;letter-spacing:.6px}
+    tbody tr:hover{background:var(--cd-primary-05)}
+    td,th{vertical-align:middle}
+    .table-responsive{scrollbar-width:thin}
+
+    /* Status chips */
+    .status-chip{display:inline-flex;align-items:center;gap:.45rem;padding:.35rem .65rem;border-radius:999px;font-size:.75rem;font-weight:700;border:1px solid transparent}
+    .st-delivered{color:var(--ok);background:var(--ok-soft);border-color:var(--cd-success-10)}
+    .st-failed{color:var(--bad);background:var(--bad-soft);border-color:var(--cd-error-10)}
+    .st-processing{color:var(--info);background:var(--info-soft);border-color:var(--cd-primary-10)}
+    .st-refunded{color:var(--violet);background:var(--violet-soft);border-color:var(--cd-soft-violet)}
+    .st-pending{color:var(--warn);background:var(--warn-soft);border-color:var(--cd-warning-10)}
+    .st-completed{color:var(--teal);background:var(--teal-soft);border-color:var(--cd-primary-10)}
+
+    /* Paid-from badge */
+    .pf-badge{border-radius:999px;padding:.45rem .65rem;font-weight:700}
+    .pf-wallet{background:var(--cd-primary-10);color:var(--cd-primary);border:1px solid var(--cd-primary-10)}
+    .pf-card{background:var(--cd-primary-10);color:var(--cd-deep);border:1px solid var(--cd-primary-10)}
+    .pf-momo{background:var(--cd-warning-10);color:var(--cd-warning);border:1px solid var(--cd-warning-10)}
+    .pf-paystack{background:var(--cd-soft-violet);color:var(--cd-deep);border:1px solid var(--cd-soft-violet)}
+    .pf-flutterwave{background:var(--cd-warning-10);color:var(--cd-warning);border:1px solid var(--cd-warning-10)}
+    .pf-bank{background:var(--cd-soft-violet);color:var(--cd-accent);border:1px solid var(--cd-soft-violet)}
+
+    .api-chip{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .65rem;border-radius:999px;font-size:.75rem;font-weight:700;border:1px solid transparent}
+    .api-chip-passed{color:var(--cd-success);background:var(--cd-success-10);border-color:var(--cd-success-10)}
+    .api-chip-not{color:var(--cd-muted);background:rgb(var(--cd-muted-rgb) / 0.15);border-color:var(--cd-border)}
+    .api-status{display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .55rem;border-radius:999px;font-size:.72rem;font-weight:700;border:1px solid transparent}
+    .api-status-success{color:var(--cd-success);background:var(--cd-success-10);border-color:rgb(var(--cd-success-rgb) / 0.3)}
+    .api-status-processing{color:var(--cd-warning);background:var(--cd-warning-10);border-color:rgb(var(--cd-warning-rgb) / 0.35)}
+    .api-status-other{color:var(--cd-muted);background:rgb(var(--cd-muted-rgb) / 0.15);border-color:var(--cd-border)}
+
+    .prov-badge{display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .55rem;border-radius:999px;font-size:.72rem;font-weight:700;border:1px solid transparent}
+    .prov-codecraft{color:var(--cd-primary);background:var(--cd-soft-violet);border-color:var(--cd-soft-violet)}
+    .prov-dataconnect{color:var(--cd-primary);background:var(--cd-primary-10);border-color:var(--cd-primary-10)}
+    .prov-portal02{color:var(--cd-accent);background:var(--cd-soft-violet);border-color:var(--cd-soft-violet)}
+    .prov-datakazina{color:var(--cd-primary);background:var(--cd-primary-10);border-color:var(--cd-primary-10)}
+    .prov-skplug{color:var(--cd-deep);background:var(--cd-warning-10);border-color:var(--cd-warning-10)}
+
+    /* Inline actions tray (desktop) */
+    .status-actions{display:none;gap:.35rem;flex-wrap:wrap;align-items:center;margin-left:.25rem}
+    .status-actions.show{display:inline-flex}
+    .status-actions.hidden{display:none}
+    .status-actions .btn{padding:.2rem .5rem;font-size:.75rem;border-radius:999px}
+
+    /* Card view (mobile) */
+    @media (max-width: 767.98px){
+      .table-wrap{display:none}
+      .cards{display:grid;gap:1rem}
+      .order-card{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-md);padding:1rem}
+      .order-card .header{display:flex;justify-content:space-between;gap:.5rem;align-items:center}
+      .order-card .meta{color:var(--muted);font-size:.85rem}
+      .order-card .items{margin:.5rem 0 0}
+      .order-card .it{display:flex;justify-content:space-between;border-top:1px dashed var(--border);padding-top:.5rem;margin-top:.5rem}
+      .order-card .tot{display:flex;align-items:center;gap:.5rem;margin-top:.75rem}
+      .order-card .footer{display:flex;gap:.5rem;align-items:center;margin-top:.75rem;flex-wrap:wrap}
+      .order-card .footer .form-check-input{width:22px;height:22px}
+      .order-card .btn-sm{padding:.45rem .6rem}
+      .card-actions{display:flex;gap:.35rem;flex-wrap:wrap; width:100%}
+      .card-actions.hidden{display:none}
+      .card-actions form {display:inline}
+      .card-actions .btn {font-size:.75rem; padding:.35rem .55rem; border-radius:999px}
+    }
+    @media (min-width: 768px){
+      .cards{display:none}
+    }
+
+    /* Bigger touch targets for checkboxes */
+    .form-check-input{width:18px;height:18px}
+    .table .form-check-input{transform:translateY(2px)}
+
+    /* Offcanvas & jobs list */
+    .offcanvas{border-left:1px solid var(--border)}
+    .schedule-row{display:flex;align-items:center;justify-content:space-between;border-bottom:1px dashed var(--border);padding:.6rem 0}
+    .muted{color:var(--muted)}
+
+    /* Floating bar for selected (mobile) */
+    .floating-bar{
+      position:fixed;left:0;right:0;bottom:0;background:var(--cd-deep)cc;color:var(--cd-card);backdrop-filter:blur(8px);
+      display:none;z-index:1050;padding:.6rem .9rem;box-shadow:0 -8px 24px rgb(var(--cd-deep-rgb) / 0.22)
+    }
+    .floating-bar.show{display:flex;align-items:center;gap:.75rem;justify-content:space-between}
+    .floating-bar .btn{box-shadow:var(--shadow-md)}
+  </style>
+</head>
+<body>
+  {% include 'admin_sidebar.html' %}
+
+  <div class="container py-3 py-md-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-start sticky-header">
+      <div class="mb-2">
+        <h2 class="mb-1"><i class="fas fa-box me-2"></i>Customer Orders</h2>
+        <div class="subhead d-flex flex-wrap gap-2">
+          <span class="chip"><i class="fa-solid fa-database"></i> Total: {{ total_orders or 0 }}</span>
+          {% if (view_mode or '') != 'orders' %}<span class="chip"><i class="fa-solid fa-layer-group"></i> Lines: {{ order_lines_count or 0 }}</span>{% endif %}
+          {% if status_filter %}<span class="chip"><i class="fa-solid fa-filter"></i> Status: {{ status_filter|capitalize }}</span>{% endif %}
+        </div>
+      </div>
+
+      <div class="actions-bar">
+        <div class="btn-group" role="group" aria-label="View mode">
+          <a href="{{ view_line_url }}" class="btn btn-outline-primary btn-icon {% if (view_mode or '') != 'orders' %}active{% endif %}">
+            <i class="fa-solid fa-list"></i> Line View
+          </a>
+          <a href="{{ view_order_url }}" class="btn btn-outline-primary btn-icon {% if (view_mode or '') == 'orders' %}active{% endif %}">
+            <i class="fa-solid fa-layer-group"></i> Order View
+          </a>
+        </div>
+
+        <!-- Filters toggle (all sizes) -->
+        <button class="btn btn-outline-secondary btn-icon" id="toggleFilters" aria-expanded="false" aria-controls="filtersCard">
+          <i class="fa-solid fa-sliders"></i> Filters
+        </button>
+
+        <!-- View Schedules -->
+        <button class="btn btn-outline-primary btn-icon" data-bs-toggle="offcanvas" data-bs-target="#jobsOffcanvas">
+          <i class="fa-solid fa-clock-rotate-left"></i> Scheduled Orders
+        </button>
+
+        <!-- Bulk Deliver within current filters -->
+        <form method="POST" action="{{ url_for('admin_orders.bulk_deliver_orders') }}{% if filters_query %}?{{ filters_query }}{% endif %}">
+          <button class="btn btn-success btn-icon" data-confirm="Mark ALL processing orders in the current filters as DELIVERED?">
+            <i class="fa-solid fa-truck-fast"></i> Mark Processing → Delivered
+          </button>
+        </form>
+
+        <!-- NEW: Mark Selected → Delivered (desktop header) -->
+        <button class="btn btn-dark btn-icon" id="markSelectedDelivered">
+          <i class="fa-solid fa-check-double"></i> Mark Selected → Delivered
+        </button>
+
+        <!-- Schedule for selected -->
+        <button class="btn btn-outline-dark btn-icon" id="openScheduleSelected" data-bs-toggle="modal" data-bs-target="#scheduleModal">
+          <i class="fa-solid fa-calendar-plus"></i> Schedule Status (Selected)
+        </button>
+      </div>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fas fa-info-circle me-2"></i>{{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Filters -->
+    <div class="filter-toggle mb-2">
+      <span class="text-muted small"><i class="fa-regular fa-circle-question me-1"></i>Tap “Filters” to refine</span>
+    </div>
+
+    <form method="get" class="filter-bar mb-3" id="filtersCard">
+      <input type="hidden" name="view" value="{{ view_mode or 'lines' }}">
+      <div class="row filter-row">
+        <div class="col-12 col-md-3">
+          <label class="form-label"><i class="fa-solid fa-hashtag me-1"></i>Order ID</label>
+          <input type="text" name="order_id" value="{{ order_id_q or '' }}" class="form-control" placeholder="Paste or type order id">
+        </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label"><i class="fa-solid fa-user me-1"></i>Customer</label>
+          <input type="text" name="customer" value="{{ customer_q or '' }}" class="form-control" placeholder="Name / email / phone / username">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label"><i class="fa-solid fa-clipboard-check me-1"></i>Status</label>
+          <select name="status" class="form-select">
+            <option value="">All</option>
+            {% for s in ['processing','delivered','failed','refunded','pending','completed'] %}
+              <option value="{{ s }}" {% if s == status_filter %}selected{% endif %}>{{ s|capitalize }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label"><i class="fa-solid fa-wallet me-1"></i>Paid From</label>
+          <select name="paid_from" class="form-select">
+            <option value="">Any</option>
+            {% for src in ['wallet','card','momo','paystack','flutterwave','bank'] %}
+              <option value="{{ src }}" {% if (paid_from or '')==src %}selected{% endif %}>{{ src|capitalize }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label"><i class="fa-solid fa-plug-circle-check me-1"></i>API</label>
+          <select name="api_filter" class="form-select">
+            <option value="">All</option>
+            <option value="passed" {% if api_filter == 'passed' %}selected{% endif %}>Passed through API</option>
+            <option value="not_passed" {% if api_filter == 'not_passed' %}selected{% endif %}>Did not pass through API</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label"><i class="fa-solid fa-diagram-project me-1"></i>Source</label>
+          <select name="source_filter" class="form-select">
+            <option value="">All</option>
+            <option value="external_api" {% if source_filter == 'external_api' %}selected{% endif %}>External API</option>
+            <option value="regular" {% if source_filter == 'regular' %}selected{% endif %}>Regular Orders</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label"><i class="fa-solid fa-arrow-down-1-9 me-1"></i>Min Total (₵)</label>
+          <input type="number" step="0.01" name="min_total" value="{{ min_total or '' }}" class="form-control" placeholder="0.00">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label"><i class="fa-solid fa-arrow-up-9-1 me-1"></i>Max Total (₵)</label>
+          <input type="number" step="0.01" name="max_total" value="{{ max_total or '' }}" class="form-control" placeholder="1000.00">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label"><i class="fa-solid fa-calendar-day me-1"></i>From</label>
+          <input type="date" name="date_from" value="{{ date_from or '' }}" class="form-control">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label"><i class="fa-solid fa-calendar-check me-1"></i>To</label>
+          <input type="date" name="date_to" value="{{ date_to or '' }}" class="form-control">
+        </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label"><i class="fa-solid fa-boxes-stacked me-1"></i>Item Service</label>
+          <input type="text" name="item_service" value="{{ item_service or '' }}" class="form-control" placeholder="e.g., Bigtime Data">
+        </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label"><i class="fa-solid fa-tags me-1"></i>Item Offer</label>
+          <input type="text" name="item_offer" value="{{ item_offer or '' }}" class="form-control" placeholder="e.g., 1GB">
+        </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label"><i class="fa-solid fa-mobile-screen-button me-1"></i>Item Phone</label>
+          <input type="text" name="item_phone" value="{{ item_phone or '' }}" class="form-control" placeholder="e.g., 055xxxxxxx">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label"><i class="fa-solid fa-sort me-1"></i>Sort</label>
+          <select name="sort" class="form-select">
+            <option value="newest" {% if (sort or '')=='newest' %}selected{% endif %}>Newest first</option>
+            <option value="oldest" {% if (sort or '')=='oldest' %}selected{% endif %}>Oldest first</option>
+            <option value="amount_desc" {% if (sort or '')=='amount_desc' %}selected{% endif %}>Amount: High → Low</option>
+            <option value="amount_asc" {% if (sort or '')=='amount_asc' %}selected{% endif %}>Amount: Low → High</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label"><i class="fa-solid fa-list-ol me-1"></i>Per Page</label>
+          <select name="per_page" class="form-select">
+            {% for n in [10,20,30,50,100] %}
+              <option value="{{ n }}" {% if (per_page or 10)|int == n %}selected{% endif %}>{{ n }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-3 d-flex align-items-end gap-2">
+          <button type="submit" class="btn btn-primary btn-icon w-100 w-md-auto">
+            <i class="fa-solid fa-magnifying-glass"></i> Apply Filters
+          </button>
+          <a href="{{ url_for('admin_orders.admin_view_orders', view=view_mode) }}" class="btn btn-outline-secondary btn-icon w-100 w-md-auto">
+            <i class="fa-solid fa-rotate-left"></i> Reset
+          </a>
+        </div>
+      </div>
+    </form>
+
+    <!-- TABLE (md+) -->
+    {% if (view_mode or '') != 'orders' %}
+    <div class="table-wrap mb-3">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="text-center">
+            <tr>
+              <th style="width:42px">
+                <input class="form-check-input" type="checkbox" id="checkAll">
+              </th>
+              <th><i class="fas fa-receipt me-1"></i>Order ID</th>
+              <th><i class="fas fa-user me-1"></i>Customer</th>
+              <th><i class="fas fa-shopping-cart me-1"></i>Item</th>
+              <th><i class="fas fa-money-bill-wave me-1"></i>Amount (&#8373;)</th>
+              <th><i class="fas fa-tasks me-1"></i>Line Status</th>
+              <th><i class="fas fa-plug me-1"></i>API Status</th>
+              <th><i class="fas fa-calendar me-1"></i>Date</th>
+              <th style="width:140px">Quick</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for line in order_lines %}
+            {% set item = line.get('item') or {} %}
+            {% set line_raw = (item.get('line_status') or '').lower() %}
+            {% set line_st = 'delivered' if line_raw == 'completed' else line_raw %}
+            {% set line_is_final = (line_st == 'delivered') %}
+            <tr>
+              <td class="text-center">
+                <input class="form-check-input row-check" data-kind="line" type="checkbox" value="{{ line['line_id'] }}" {% if line_is_final %}disabled title="Delivered lines are final."{% endif %}>
+              </td>
+              <td class="fw-semibold">
+                {{ line.get("order_id") }}
+                {% if line.get("source") == "external_api" %}
+                  <span class="badge bg-dark ms-1">External API</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="fw-semibold">
+                  {% if line.get("source") == "external_api" %}
+                    {{ line.get("api_client_name") or "External API" }}
+                    <span class="badge bg-dark ms-1">API</span>
+                  {% else %}
+                    {{ (line.get("user") or {}).get("first_name","") }} {{ (line.get("user") or {}).get("last_name","") }}
+                  {% endif %}
+                </div>
+                <div class="small text-muted">
+                  {% if line.get("source") == "external_api" %}
+                    <i class="fas fa-plug me-1"></i>{{ (line.get("external_request") or {}).get("client_reference") or "External order" }}<br>
+                    <i class="fas fa-wallet me-1"></i><strong>external_api_balance</strong>
+                  {% else %}
+                    <i class="fas fa-envelope me-1"></i>{{ (line.get("user") or {}).get("email","") }}<br>
+                    <i class="fas fa-phone-alt me-1"></i><strong>{{ (line.get("user") or {}).get("phone","") }}</strong>
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                <div class="fw-semibold">{{ item.get("serviceName","") }} &ndash; {{ item.get("value","") }}</div>
+                <div class="small text-muted"><i class="fas fa-mobile-alt me-1"></i>{{ item.get("phone","") }}</div>
+              </td>
+              <td class="text-center fw-semibold text-success">
+                <i class="fas fa-coins me-1"></i>&#8373;{{ "%.2f"|format(item.get("amount") or 0) }}
+              </td>
+              <td class="text-center">
+                <span class="status-chip
+                  {% if line_st=='delivered' %}st-delivered
+                  {% elif line_st=='failed' %}st-failed
+                  {% elif line_st=='processing' %}st-processing
+                  {% elif line_st=='refunded' %}st-refunded
+                  {% elif line_st=='pending' %}st-pending
+                  {% elif line_st=='completed' %}st-completed
+                  {% else %}st-processing{% endif %}">
+                  <i class="fa-solid fa-circle"></i> {{ line_st|capitalize }}
+                </span>
+              </td>
+              <td class="text-center">
+                {% set api_raw = (item.get("api_status") or "") %}
+                {% set api_norm = api_raw|lower %}
+                {% if api_norm in ['success','successful','completed','delivered','done','ok'] %}
+                  <span class="api-status api-status-success">Success</span>
+                {% elif api_norm in ['processing','pending','in progress','in_progress','queued'] %}
+                  <span class="api-status api-status-processing">Processing</span>
+                {% elif api_norm %}
+                  <span class="api-status api-status-other">{{ api_raw }}</span>
+                {% else %}
+                  <span class="api-status api-status-other">—</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                <small class="muted"><i class="fas fa-clock me-1"></i>
+                  {{ line.get("created_at").strftime('%Y-%m-%d %H:%M') if line.get("created_at") else 'N/A' }}
+                </small>
+              </td>
+              <td class="text-center">
+                <div class="d-flex flex-wrap gap-2 justify-content-center">
+                  {% if line_is_final %}
+                    <span class="text-muted small">Final</span>
+                  {% else %}
+                    {% for newst in ['delivered','processing','failed','refunded'] %}
+                    <form method="POST" class="m-0 d-inline"
+                          action="{{ url_for('admin_orders.update_order_line_status', order_id=line['order_mongo_id'], item_index=line['item_index']) }}{% if filters_query %}?{{ filters_query }}{% endif %}">
+                      <input type="hidden" name="line_status" value="{{ newst }}">
+                      <button type="submit" class="btn btn-outline-{{ 'success' if newst=='delivered' else ('info' if newst=='processing' else ('danger' if newst=='failed' else 'primary')) }} btn-sm"
+                              {% if newst=='refunded' %}data-confirm="Mark this line as Refunded?"{% endif %}>
+                        {{ newst|capitalize }}
+                      </button>
+                    </form>
+                    {% endfor %}
+                  {% endif %}
+                  <button class="btn btn-sm btn-dark" data-quick-schedule="{{ line['line_id'] }}" data-kind="line" data-bs-toggle="modal" data-bs-target="#scheduleModal"
+                    {% if line_is_final %}disabled title="Delivered lines are final."{% endif %}>
+                    <i class="fa-solid fa-calendar-plus"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="9" class="text-center text-muted py-5">
+                <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                <h5>No order lines found</h5>
+                <p class="mb-0">Try adjusting your filter criteria</p>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <div class="table-wrap mb-3">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="text-center">
+            <tr>
+              <th style="width:42px">
+                <input class="form-check-input" type="checkbox" id="checkAll">
+              </th>
+              <th><i class="fas fa-receipt me-1"></i>Order ID</th>
+              <th><i class="fas fa-user me-1"></i>Customer</th>
+              <th><i class="fas fa-shopping-cart me-1"></i>Items</th>
+              <th><i class="fas fa-money-bill-wave me-1"></i>Total (&#8373;)</th>
+              <th><i class="fas fa-tasks me-1"></i>Status</th>
+              <th><i class="fas fa-credit-card me-1"></i>Paid From</th>
+              <th><i class="fas fa-plug me-1"></i>API</th>
+              <th><i class="fas fa-calendar me-1"></i>Date</th>
+              <th style="width:110px">Quick</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for order in orders %}
+            {% set st_raw = (order.get('status') or '').lower() %}
+            {% set st = 'delivered' if st_raw == 'completed' else st_raw %}
+            {% set is_completed = (st == 'delivered') %}
+            <tr>
+              <td class="text-center">
+                <input class="form-check-input row-check" data-kind="order" type="checkbox" value="{{ order['_id'] }}" {% if is_completed %}disabled title="Delivered orders are final."{% endif %}>
+              </td>
+              <td class="fw-semibold">
+                {{ order["order_id"] }}
+                {% if order.get("source") == "external_api" %}
+                  <span class="badge bg-dark ms-1">External API</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="fw-semibold">
+                  {% if order.get("source") == "external_api" %}
+                    {{ order.get("api_client_name") or "External API" }}
+                    <span class="badge bg-dark ms-1">API</span>
+                  {% else %}
+                    {{ (order["user"] or {}).get("first_name","") }} {{ (order["user"] or {}).get("last_name","") }}
+                  {% endif %}
+                </div>
+                <div class="small text-muted">
+                  {% if order.get("source") == "external_api" %}
+                    <i class="fas fa-plug me-1"></i>{{ (order.get("external_request") or {}).get("client_reference") or "External order" }}<br>
+                    <i class="fas fa-wallet me-1"></i><strong>external_api_balance</strong>
+                  {% else %}
+                    <i class="fas fa-envelope me-1"></i>{{ (order["user"] or {}).get("email","") }}<br>
+                    <i class="fas fa-phone-alt me-1"></i><strong>{{ (order["user"] or {}).get("phone","") }}</strong>
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                <ul class="list-unstyled small mb-0">
+                  {% for item in order["items"] %}
+                  <li class="mb-1 border-bottom pb-1">
+                    <strong>{{ item["serviceName"] }}</strong> &ndash; {{ item.get("value","") }}<br>
+                    <span class="d-block"><i class="fas fa-mobile-alt me-1 text-muted"></i><strong>{{ item.get("phone","") }}</strong></span>
+                    <span class="d-block mt-1"><i class="fas fa-tag me-1 text-muted"></i>&#8373;{{ "%.2f"|format(item.get("amount") or 0) }}</span>
+                  </li>
+                  {% endfor %}
+                </ul>
+              </td>
+              <td class="text-center fw-semibold text-success">
+                <i class="fas fa-coins me-1"></i>&#8373;{{ "%.2f"|format(order.get("total_amount", 0) or 0) }}
+              </td>
+              <td class="text-center">
+                <div class="d-flex flex-wrap gap-2 align-items-center justify-content-center">
+                  <span class="status-chip
+                  {% if st=='delivered' %}st-delivered
+                  {% elif st=='failed' %}st-failed
+                  {% elif st=='processing' %}st-processing
+                  {% elif st=='refunded' %}st-refunded
+                  {% elif st=='pending' %}st-pending
+                  {% elif st=='completed' %}st-completed
+                  {% else %}st-processing{% endif %}">
+                  <i class="fa-solid fa-circle"></i> {{ st|capitalize }}
+                  </span>
+                  <button type="button" class="btn btn-sm btn-outline-secondary btn-icon toggle-actions"
+                          data-actions="actions-{{ order['_id'] }}"
+                          {% if is_completed %}disabled title="Delivered orders are final."{% endif %}>
+                    <i class="fa-solid fa-ellipsis"></i> Actions
+                  </button>
+                </div>
+
+                <!-- Inline actions tray (desktop) -->
+                <div class="status-actions mt-2" id="actions-{{ order['_id'] }}">
+                  {% if is_completed %}
+                  <span class="text-muted small">Delivered orders are final.</span>
+                  {% else %}
+                  {% for newst in ['failed','refunded','processing','delivered'] %}
+                  <form method="POST" class="m-0 d-inline"
+                        action="{{ url_for('admin_orders.update_order_status', order_id=order['_id']) }}{% if filters_query %}?{{ filters_query }}{% endif %}">
+                    <input type="hidden" name="status" value="{{ newst }}">
+                    <button type="submit" class="btn btn-outline-{{ 'danger' if newst=='failed' else ('success' if newst=='delivered' else ('info' if newst=='processing' else 'primary')) }} btn-sm"
+                            {% if newst=='refunded' %}data-confirm="Mark this order as Refunded? This credits the customer's wallet if not already."{% endif %}>
+                      {{ newst|capitalize }}
+                    </button>
+                  </form>
+                  {% endfor %}
+                  {% endif %}
+                </div>
+              </td>
+              <td class="text-center">
+                {% set pf = (order.get("paid_from") or "N/A")|lower %}
+                <span class="pf-badge
+                  {% if pf=='wallet' %}pf-wallet
+                  {% elif pf=='card' %}pf-card
+                  {% elif pf=='momo' %}pf-momo
+                  {% elif pf=='paystack' %}pf-paystack
+                  {% elif pf=='flutterwave' %}pf-flutterwave
+                  {% elif pf=='bank' %}pf-bank
+                  {% else %}pf-card{% endif %}">
+                  <i class="fas fa-wallet me-1"></i>{{ pf|capitalize }}
+                </span>
+              </td>
+              <td class="text-center">
+                {% if order.get("api_passed") %}
+                  <span class="api-chip api-chip-passed"><i class="fas fa-check-circle"></i> Passed through API</span>
+                {% else %}
+                  <span class="api-chip api-chip-not"><i class="fas fa-minus-circle"></i> Did not pass through API</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                <small class="muted"><i class="fas fa-clock me-1"></i>
+                  {{ order.get("created_at").strftime('%Y-%m-%d %H:%M') if order.get("created_at") else 'N/A' }}
+                </small>
+              </td>
+              <td class="text-center">
+                <!-- Quick schedule button for this row -->
+                <button class="btn btn-sm btn-dark" data-quick-schedule="{{ order['_id'] }}" data-kind="order" data-bs-toggle="modal" data-bs-target="#scheduleModal"
+                  {% if is_completed %}disabled title="Delivered orders are final."{% endif %}>
+                  <i class="fa-solid fa-calendar-plus"></i>
+                </button>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="10" class="text-center text-muted py-5">
+                <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                <h5>No orders found</h5>
+                <p class="mb-0">Try adjusting your filter criteria</p>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- CARD LIST (xs-sm) -->
+    <div class="cards mb-5">
+      {% if (view_mode or '') != 'orders' %}
+        {% for line in order_lines %}
+        {% set item = line.get('item') or {} %}
+        {% set line_raw = (item.get('line_status') or '').lower() %}
+        {% set line_st = 'delivered' if line_raw == 'completed' else line_raw %}
+        {% set line_is_final = (line_st == 'delivered') %}
+        <div class="order-card">
+          <div class="header">
+            <div>
+              <div class="fw-bold">
+                #{{ line.get("order_id") }}
+                {% if line.get("source") == "external_api" %}
+                  <span class="badge bg-dark ms-1">External API</span>
+                {% endif %}
+              </div>
+              <div class="meta">
+                {% if line.get("source") == "external_api" %}
+                  {{ line.get("api_client_name") or "External API" }} &bull;
+                {% else %}
+                  {{ (line.get("user") or {}).get("first_name","") }} {{ (line.get("user") or {}).get("last_name","") }} &bull;
+                {% endif %}
+                <i class="fa-regular fa-clock"></i>
+                {{ line.get("created_at").strftime('%Y-%m-%d %H:%M') if line.get("created_at") else 'N/A' }}
+              </div>
+            </div>
+            <div>
+              <span class="status-chip
+                {% if line_st=='delivered' %}st-delivered
+                {% elif line_st=='failed' %}st-failed
+                {% elif line_st=='processing' %}st-processing
+                {% elif line_st=='refunded' %}st-refunded
+                {% elif line_st=='pending' %}st-pending
+                {% elif line_st=='completed' %}st-completed
+                {% else %}st-processing{% endif %}">
+                <i class="fa-solid fa-circle"></i> {{ line_st|capitalize }}
+              </span>
+            </div>
+          </div>
+
+          <div class="items">
+            <div class="it">
+              <div>
+                <strong>{{ item.get("serviceName","") }}</strong> &ndash; {{ item.get("value","") }}<br>
+                <small class="text-muted"><i class="fas fa-mobile-alt me-1"></i>{{ item.get("phone","") }}</small>
+              </div>
+              <div class="fw-semibold">&#8373;{{ "%.2f"|format(item.get("amount") or 0) }}</div>
+            </div>
+          </div>
+
+          <div class="tot">
+            {% set api_raw = (item.get("api_status") or "") %}
+            {% set api_norm = api_raw|lower %}
+            {% if api_norm in ['success','successful','completed','delivered','done','ok'] %}
+              <span class="api-status api-status-success">Success</span>
+            {% elif api_norm in ['processing','pending','in progress','in_progress','queued'] %}
+              <span class="api-status api-status-processing">Processing</span>
+            {% elif api_norm %}
+              <span class="api-status api-status-other">{{ api_raw }}</span>
+            {% else %}
+              <span class="api-status api-status-other">—</span>
+            {% endif %}
+          </div>
+
+        <div class="footer">
+            <input class="form-check-input row-check" data-kind="line" type="checkbox" value="{{ line['line_id'] }}" {% if line_is_final %}disabled title="Delivered lines are final."{% endif %}>
+
+            <!-- MOBILE ACTIONS (always visible; no dropdowns) -->
+            <button class="btn btn-outline-secondary btn-sm w-100 toggle-actions" type="button"
+                    data-actions="card-actions-{{ line['line_id'] | replace(':', '_') }}"
+                    {% if line_is_final %}disabled title="Delivered lines are final."{% endif %}>
+              <i class="fa-solid fa-ellipsis"></i> Actions
+            </button>
+            <div class="card-actions hidden" id="card-actions-{{ line['line_id'] | replace(':', '_') }}">
+              {% if line_is_final %}
+              <span class="text-muted small">Delivered lines are final.</span>
+              {% else %}
+              {% for newst in ['delivered','processing','failed','refunded'] %}
+              <form method="POST" action="{{ url_for('admin_orders.update_order_line_status', order_id=line['order_mongo_id'], item_index=line['item_index']) }}{% if filters_query %}?{{ filters_query }}{% endif %}">
+                <input type="hidden" name="line_status" value="{{ newst }}">
+                <button type="submit"
+                  class="btn btn-outline-{{ 'success' if newst=='delivered' else ('info' if newst=='processing' else ('danger' if newst=='failed' else 'primary')) }} btn-sm"
+                  {% if newst=='refunded' %}data-confirm="Mark this line as Refunded?"{% endif %}>
+                  {{ newst|capitalize }}
+                </button>
+              </form>
+              {% endfor %}
+              <button class="btn btn-dark btn-sm" data-quick-schedule="{{ line['line_id'] }}" data-kind="line" data-bs-toggle="modal" data-bs-target="#scheduleModal">
+                <i class="fa-solid fa-calendar-plus"></i> Schedule
+              </button>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        {% for order in orders %}
+        {% set st_raw = (order.get('status') or '').lower() %}
+        {% set st = 'delivered' if st_raw == 'completed' else st_raw %}
+        {% set is_completed = (st == 'delivered') %}
+        <div class="order-card">
+          <div class="header">
+            <div>
+              <div class="fw-bold">
+                #{{ order["order_id"] }}
+                {% if order.get("source") == "external_api" %}
+                  <span class="badge bg-dark ms-1">External API</span>
+                {% endif %}
+              </div>
+              <div class="meta">
+                {% if order.get("source") == "external_api" %}
+                  {{ order.get("api_client_name") or "External API" }} &bull;
+                {% else %}
+                  {{ (order["user"] or {}).get("first_name","") }} {{ (order["user"] or {}).get("last_name","") }} &bull;
+                {% endif %}
+                <i class="fa-regular fa-clock"></i>
+                {{ order.get("created_at").strftime('%Y-%m-%d %H:%M') if order.get("created_at") else 'N/A' }}
+              </div>
+            </div>
+            <div>
+              <span class="status-chip
+                {% if st=='delivered' %}st-delivered
+                {% elif st=='failed' %}st-failed
+                {% elif st=='processing' %}st-processing
+                {% elif st=='refunded' %}st-refunded
+                {% elif st=='pending' %}st-pending
+                {% elif st=='completed' %}st-completed
+                {% else %}st-processing{% endif %}">
+                <i class="fa-solid fa-circle"></i> {{ st|capitalize }}
+              </span>
+            </div>
+          </div>
+
+          <div class="items">
+            {% for item in order["items"] %}
+            <div class="it">
+              <div>
+                <strong>{{ item["serviceName"] }}</strong> &ndash; {{ item.get("value","") }}<br>
+                <small class="text-muted"><i class="fas fa-mobile-alt me-1"></i>{{ item.get("phone","") }}</small>
+              </div>
+              <div class="fw-semibold">&#8373;{{ "%.2f"|format(item.get("amount") or 0) }}</div>
+            </div>
+            {% endfor %}
+          </div>
+
+          <div class="tot">
+            <span class="fw-semibold text-success"><i class="fas fa-coins me-1"></i>&#8373;{{ "%.2f"|format(order.get("total_amount", 0) or 0) }}</span>
+            {% set pf = (order.get("paid_from") or "N/A")|lower %}
+            <span class="pf-badge ms-auto
+              {% if pf=='wallet' %}pf-wallet
+              {% elif pf=='card' %}pf-card
+              {% elif pf=='momo' %}pf-momo
+              {% elif pf=='paystack' %}pf-paystack
+              {% elif pf=='flutterwave' %}pf-flutterwave
+              {% elif pf=='bank' %}pf-bank
+              {% else %}pf-card{% endif %}">
+              <i class="fas fa-wallet me-1"></i>{{ pf|capitalize }}
+            </span>
+          </div>
+
+          <div class="mt-2 d-flex flex-wrap gap-2 align-items-center">
+            {% if order.get("api_passed") %}
+              <span class="api-chip api-chip-passed"><i class="fas fa-check-circle"></i> Passed through API</span>
+            {% else %}
+              <span class="api-chip api-chip-not"><i class="fas fa-minus-circle"></i> Did not pass through API</span>
+            {% endif %}
+          </div>
+
+        <div class="footer">
+            <input class="form-check-input row-check" data-kind="order" type="checkbox" value="{{ order['_id'] }}" {% if is_completed %}disabled title="Delivered orders are final."{% endif %}>
+
+            <!-- MOBILE ACTIONS (always visible; no dropdowns) -->
+            <button class="btn btn-outline-secondary btn-sm w-100 toggle-actions" type="button"
+                    data-actions="card-actions-{{ order['_id'] }}"
+                    {% if is_completed %}disabled title="Delivered orders are final."{% endif %}>
+              <i class="fa-solid fa-ellipsis"></i> Actions
+            </button>
+            <div class="card-actions hidden" id="card-actions-{{ order['_id'] }}">
+              {% if is_completed %}
+              <span class="text-muted small">Delivered orders are final.</span>
+              {% else %}
+              {% for newst in ['delivered','processing','failed','refunded'] %}
+              <form method="POST" action="{{ url_for('admin_orders.update_order_status', order_id=order['_id']) }}{% if filters_query %}?{{ filters_query }}{% endif %}">
+                <input type="hidden" name="status" value="{{ newst }}">
+                <button type="submit"
+                  class="btn btn-outline-{{ 'success' if newst=='delivered' else ('info' if newst=='processing' else ('danger' if newst=='failed' else 'primary')) }} btn-sm"
+                  {% if newst=='refunded' %}data-confirm="Mark this order as Refunded? This credits the customer's wallet if not already."{% endif %}>
+                  {{ newst|capitalize }}
+                </button>
+              </form>
+              {% endfor %}
+              <button class="btn btn-dark btn-sm" data-quick-schedule="{{ order['_id'] }}" data-kind="order" data-bs-toggle="modal" data-bs-target="#scheduleModal">
+                <i class="fa-solid fa-calendar-plus"></i> Schedule
+              </button>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+<!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="d-flex justify-content-between align-items-center mt-3">
+      <div class="text-muted small">Page {{ page }} of {{ total_pages }}</div>
+      <nav>
+        <ul class="pagination pagination-sm mb-0">
+          {% if page > 1 %}
+            <li class="page-item">
+              <a class="page-link" href="{{ url_for('admin_orders.admin_view_orders', page=page-1) }}{% if filters_query %}&{{ filters_query }}{% endif %}">
+                <i class="fas fa-chevron-left"></i> Prev
+              </a>
+            </li>
+          {% endif %}
+          {% for p in range(1, total_pages+1) %}
+            <li class="page-item {% if p == page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('admin_orders.admin_view_orders', page=p) }}{% if filters_query %}&{{ filters_query }}{% endif %}">
+                {{ p }}
+              </a>
+            </li>
+          {% endfor %}
+          {% if page < total_pages %}
+            <li class="page-item">
+              <a class="page-link" href="{{ url_for('admin_orders.admin_view_orders', page=page+1) }}{% if filters_query %}&{{ filters_query }}{% endif %}">
+                Next <i class="fas fa-chevron-right"></i>
+              </a>
+            </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Hidden form for "Mark Selected → Delivered" -->
+  <form method="POST" id="bulkSelectedDeliverForm" action="{{ url_for('admin_orders.bulk_deliver_selected') }}" class="d-none">
+    <input type="hidden" name="order_ids" id="bulkSelectedIds">
+      <input type="hidden" name="line_ids" id="bulkSelectedLineIds">
+  </form>
+
+  <!-- Floating bulk bar (mobile) -->
+  <div class="floating-bar" id="floatingBar">
+    <div><span id="selCount" class="badge bg-light text-dark">0</span> selected</div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-light btn-sm" id="fbSchedule" data-bs-toggle="modal" data-bs-target="#scheduleModal">
+        <i class="fa-solid fa-calendar-plus me-1"></i>Schedule
+      </button>
+      <button class="btn btn-success btn-sm" id="fbDeliver">
+        <i class="fa-solid fa-check-double me-1"></i>Deliver
+      </button>
+      <a href="{{ url_for('admin_orders.admin_view_orders') }}{% if filters_query %}?{{ filters_query }}{% endif %}" class="btn btn-light btn-sm">
+        Reset
+      </a>
+    </div>
+  </div>
+
+  <!-- Schedule Modal -->
+  <div class="modal fade" id="scheduleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content" method="POST" action="{{ url_for('admin_orders.schedule_status') }}">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fa-solid fa-calendar-plus me-2"></i>Schedule Status Change</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Selection</label>
+            <div class="small text-muted">You can select multiple orders or lines from the list. This will populate automatically.</div>
+            <div id="selectedOrdersPreview" class="mt-2"></div>
+          </div>
+
+          <input type="hidden" name="order_ids" id="scheduleOrderIds">
+          <input type="hidden" name="line_ids" id="scheduleLineIds">
+
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">New Status</label>
+              <select name="status" class="form-select" required>
+                {% for s in ['processing','delivered','failed','refunded','pending','completed'] %}
+                  <option value="{{ s }}">{{ s|capitalize }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Delay (minutes)</label>
+              <input type="number" min="0" step="1" class="form-control" name="delay_minutes" id="delayMinutes" placeholder="e.g., 10">
+              <div class="form-text">Set a delay OR specify an exact time below.</div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Run At (UTC)</label>
+              <input type="datetime-local" class="form-control" id="runAtLocal" placeholder="YYYY-MM-DD HH:MM">
+              <input type="hidden" name="run_at" id="runAtUtc">
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Note (optional)</label>
+              <input type="text" class="form-control" name="note" placeholder="Reason or extra info for audit">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-primary" type="submit">
+            <i class="fa-solid fa-calendar-check me-1"></i> Schedule
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Offcanvas: Scheduled Jobs -->
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="jobsOffcanvas" aria-labelledby="jobsLabel">
+    <div class="offcanvas-header">
+      <h5 id="jobsLabel" class="mb-0"><i class="fa-solid fa-clock-rotate-left me-2"></i>Scheduled Jobs</h5>
+      <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+      <div id="jobsList" class="small"></div>
+      <div class="text-center mt-3">
+        <button class="btn btn-outline-primary btn-sm" id="refreshJobs"><i class="fa-solid fa-rotate"></i> Refresh</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // ---------- helpers ----------
+    const $$ = (sel, root=document)=>Array.from(root.querySelectorAll(sel));
+    const $  = (sel, root=document)=>root.querySelector(sel);
+    const pad2 = n => String(n).padStart(2,'0');
+
+    // Mobile: toggle filter card
+    const toggleFiltersBtn = document.getElementById('toggleFilters');
+    const filtersCard = document.getElementById('filtersCard');
+    toggleFiltersBtn?.addEventListener('click', ()=>{
+      const willShow = !filtersCard.classList.contains('show');
+      filtersCard.classList.toggle('show', willShow);
+      toggleFiltersBtn.setAttribute('aria-expanded', willShow ? 'true' : 'false');
+    });
+
+    // Status actions toggle
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.toggle-actions');
+      if (!btn) return;
+      const targetId = btn.getAttribute('data-actions');
+      const el = targetId ? document.getElementById(targetId) : null;
+      if (!el) return;
+      if (el.classList.contains('status-actions')) {
+        el.classList.toggle('show');
+      } else {
+        el.classList.toggle('hidden');
+      }
+    });
+
+    // Select all / per-row selection (desktop)
+    const checkAll = document.getElementById('checkAll');
+    function getSelection(){
+      const checks = $$('.row-check').filter(c => c.checked);
+      if (!checks.length) return { kind: 'order', ids: [] };
+      const kind = checks[0].dataset.kind || (checks[0].value.includes(':') ? 'line' : 'order');
+      return { kind, ids: checks.map(c => c.value) };
+    }
+    checkAll?.addEventListener('change', () => {
+      $$('.row-check').forEach(c => c.checked = checkAll.checked);
+      updateFloatingBar();
+    });
+
+    // sync floating bar on any checkbox change
+    document.addEventListener('change', (e)=>{
+      if (e.target.classList.contains('row-check')) updateFloatingBar();
+    });
+
+    // Schedule modal wiring
+    const openSelBtn = document.getElementById('openScheduleSelected');
+    const scheduleOrderIds = document.getElementById('scheduleOrderIds');
+    const scheduleLineIds = document.getElementById('scheduleLineIds');
+    const selectedOrdersPreview = document.getElementById('selectedOrdersPreview');
+    const runAtLocal = document.getElementById('runAtLocal');
+    const runAtUtc = document.getElementById('runAtUtc');
+
+    openSelBtn?.addEventListener('click', () => {
+      const sel = getSelection();
+      if (sel.kind === 'line') {
+        scheduleLineIds.value = sel.ids.join(',');
+        scheduleOrderIds.value = '';
+      } else {
+        scheduleOrderIds.value = sel.ids.join(',');
+        scheduleLineIds.value = '';
+      }
+      selectedOrdersPreview.innerHTML = sel.ids.length
+        ? `<span class="badge text-bg-dark">${sel.ids.length}</span> ${sel.kind === 'line' ? 'lines' : 'orders'} selected`
+        : `<span class="text-danger">No selection yet ? you can still add one from the list.</span>`;
+    });
+
+    // Per-row quick schedule adds that row to modal
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-quick-schedule]');
+      if (!b) return;
+      const id = b.getAttribute('data-quick-schedule');
+      const kind = b.getAttribute('data-kind') || (id.includes(':') ? 'line' : 'order');
+      const target = (kind === 'line') ? scheduleLineIds : scheduleOrderIds;
+      const other = (kind === 'line') ? scheduleOrderIds : scheduleLineIds;
+      const current = target.value ? target.value.split(',').filter(Boolean) : [];
+      if (!current.includes(id)) current.push(id);
+      target.value = current.join(',');
+      other.value = '';
+      selectedOrdersPreview.innerHTML = `<span class="badge text-bg-dark">${current.length}</span> ${kind === 'line' ? 'lines' : 'orders'} selected`;
+    });
+
+    // Convert datetime-local (local) -> UTC "YYYY-MM-DD HH:MM"
+    runAtLocal?.addEventListener('change', () => {
+      if (!runAtLocal.value){ runAtUtc.value = ''; return; }
+      const dt = new Date(runAtLocal.value);
+      const y = dt.getUTCFullYear(), m = pad2(dt.getUTCMonth()+1), d = pad2(dt.getUTCDate());
+      const hh = pad2(dt.getUTCHours()), mm = pad2(dt.getUTCMinutes());
+      runAtUtc.value = `${y}-${m}-${d} ${hh}:${mm}`;
+    });
+
+    // Jobs offcanvas loader
+    async function loadJobs(){
+      const list = document.getElementById('jobsList');
+      list.innerHTML = '<div class="text-center text-muted py-2"><i class="fa-solid fa-spinner fa-spin me-2"></i>Loading…</div>';
+      try{
+        const res = await fetch('{{ url_for("admin_orders.list_schedules") }}', {credentials:'same-origin'});
+        if (!res.ok) throw new Error('Network');
+        const data = await res.json();
+        if (!data.jobs || !data.jobs.length){
+          list.innerHTML = '<div class="text-center text-muted">No scheduled jobs.</div>';
+          return;
+        }
+        const baseCancel = '{{ url_for("admin_orders.cancel_schedule", job_id="__JOB__") }}';
+        list.innerHTML = data.jobs.map(j => {
+          const cancelUrl = baseCancel.replace('__JOB__', encodeURIComponent(j.id));
+          const statusTxt = (Array.isArray(j.args) && j.args[1]) ? `Status → <b>${j.args[1]}</b>` : '';
+          return `
+          <div class="schedule-row">
+            <div>
+              <div><strong>ID:</strong> <code>${j.id}</code></div>
+              <div class="muted"><i class="fa-regular fa-clock me-1"></i>${j.next_run_time ?? '—'}</div>
+              <div class="muted"><small>${statusTxt}</small></div>
+            </div>
+            <form method="POST" action="${cancelUrl}">
+              <button class="btn btn-sm btn-outline-danger" data-confirm="Cancel this schedule?">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </form>
+          </div>`;
+        }).join('');
+      }catch(e){
+        list.innerHTML = '<div class="text-danger">Failed to load schedules.</div>';
+      }
+    }
+    const jobsOffcanvas = document.getElementById('jobsOffcanvas');
+    jobsOffcanvas?.addEventListener('shown.bs.offcanvas', loadJobs);
+    document.getElementById('refreshJobs')?.addEventListener('click', loadJobs);
+
+    // Floating bulk bar (mobile)
+    const floatingBar = document.getElementById('floatingBar');
+    const selCount = document.getElementById('selCount');
+    const fbSchedule = document.getElementById('fbSchedule');
+    const fbDeliver = document.getElementById('fbDeliver');
+
+    function updateFloatingBar(){
+      const count = getSelection().ids.length;
+      selCount.textContent = count;
+      if (count > 0) floatingBar.classList.add('show');
+      else floatingBar.classList.remove('show');
+    }
+
+    fbSchedule?.addEventListener('click', ()=>{
+      const sel = getSelection();
+      if (sel.kind === 'line') {
+        scheduleLineIds.value = sel.ids.join(',');
+        scheduleOrderIds.value = '';
+      } else {
+        scheduleOrderIds.value = sel.ids.join(',');
+        scheduleLineIds.value = '';
+      }
+      selectedOrdersPreview.innerHTML = sel.ids.length
+        ? `<span class="badge text-bg-dark">${sel.ids.length}</span> ${sel.kind === 'line' ? 'lines' : 'orders'} selected`
+        : `<span class="text-danger">No selection yet.</span>`;
+    });
+
+    // Bulk Selected → Delivered (desktop button)
+    const markSelectedDeliveredBtn = document.getElementById('markSelectedDelivered');
+    const bulkSelectedDeliverForm = document.getElementById('bulkSelectedDeliverForm');
+    const bulkSelectedIds = document.getElementById('bulkSelectedIds');
+    const bulkSelectedLineIds = document.getElementById('bulkSelectedLineIds');
+
+    function submitBulkDeliverSelected(){
+      const sel = getSelection();
+      if (!sel.ids.length){
+        alert('Select at least one order or line.');
+        return;
+      }
+      if (sel.kind === 'line') {
+        bulkSelectedLineIds.value = sel.ids.join(',');
+        bulkSelectedIds.value = '';
+      } else {
+        bulkSelectedIds.value = sel.ids.join(',');
+        bulkSelectedLineIds.value = '';
+      }
+      bulkSelectedDeliverForm.submit();
+    }
+
+    markSelectedDeliveredBtn?.addEventListener('click', submitBulkDeliverSelected);
+    fbDeliver?.addEventListener('click', submitBulkDeliverSelected);
+
+    // Centralized confirm (for any data-confirm buttons)
+    document.addEventListener('click', (e) => {
+      const submitBtn = e.target.closest('button[type="submit"][data-confirm], .btn[data-confirm]');
+      if (!submitBtn) return;
+      const msg = submitBtn.getAttribute('data-confirm') || 'Are you sure?';
+      if (!window.confirm(msg)) { e.preventDefault(); e.stopPropagation(); }
+    });
+  </script>
+</body>
+</html>

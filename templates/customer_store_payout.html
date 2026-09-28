@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>{{ store.name }} — Payout Settings</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+  <link rel="icon" type="image/png" href="{{ BRAND_LOGO_URL }}">
+
+  <style>
+    :root{
+      /* WHITE UI */
+      --bg:var(--cd-bg);
+      --card:var(--cd-card);
+      --ink:var(--cd-deep);
+      --muted:var(--cd-muted);
+      --border:rgb(var(--cd-deep-rgb) / 0.10);
+      --border2:rgb(var(--cd-deep-rgb) / 0.14);
+      --primary:var(--cd-primary);
+      --primary2:var(--cd-primary);
+      --success:var(--cd-success);
+      --warning:var(--cd-warning);
+      --radius-xl:22px;
+      --radius-lg:18px;
+      --radius-md:14px;
+      --shadow:0 18px 45px rgb(var(--cd-deep-rgb) / 0.10);
+      --shadow2:0 10px 30px rgb(var(--cd-deep-rgb) / 0.08);
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      background:
+        radial-gradient(circle at 0 0, var(--cd-primary-10), transparent 55%),
+        radial-gradient(circle at 100% 0, rgb(var(--cd-success-rgb) /.08), transparent 55%),
+        var(--bg);
+      color:var(--ink);
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      min-height:100vh;
+    }
+
+    /* Keep your sidebar behavior */
+    .content-wrap{ margin-left:260px; }
+    @media(max-width:991px){ .content-wrap{ margin-left:0; } }
+
+    .page-inner{
+      max-width:1180px;
+      margin:1.25rem auto 3rem;
+      padding:0 1rem;
+    }
+
+    /* Header */
+    .page-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-bottom: 1rem;
+    }
+    .page-title h4{
+      margin:0;
+      font-weight:900;
+      letter-spacing:.02em;
+      font-size:1.15rem;
+      display:flex;
+      align-items:center;
+      gap:.5rem;
+    }
+    .page-sub{
+      margin-top:.25rem;
+      font-size:.9rem;
+      color:var(--muted);
+      max-width:720px;
+    }
+
+    .back-btn{
+      border-radius:999px;
+      border:1px solid var(--border2);
+      background:var(--cd-card);
+      color:var(--ink);
+      padding:.45rem .9rem;
+      font-size:.88rem;
+      display:inline-flex;
+      align-items:center;
+      gap:.45rem;
+      box-shadow: 0 10px 20px rgb(var(--cd-deep-rgb) / 0.06);
+      transition: transform .15s ease, box-shadow .15s ease;
+      text-decoration:none;
+      white-space:nowrap;
+    }
+    .back-btn:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 14px 28px rgb(var(--cd-deep-rgb) / 0.09);
+      color:var(--ink);
+    }
+
+    /* KPI row */
+    .kpi-row{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:12px;
+      margin-bottom: 1.25rem;
+    }
+    @media(max-width: 900px){ .kpi-row{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media(max-width: 575px){ .kpi-row{ grid-template-columns:1fr; } }
+
+    .kpi-box{
+      background: var(--card);
+      border:1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 14px 14px;
+      box-shadow: var(--shadow2);
+    }
+    .kpi-box.highlight{
+      border-color: rgb(var(--cd-primary-rgb) / 0.25);
+      background:
+        radial-gradient(circle at 0 0, var(--cd-primary-10), transparent 55%),
+        var(--cd-card);
+    }
+    .kpi-label{
+      font-size:.78rem;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color: var(--muted);
+      display:flex;
+      align-items:center;
+      gap:.45rem;
+    }
+    .kpi-value{
+      font-size:1.35rem;
+      font-weight:900;
+      margin-top:.25rem;
+      line-height:1.1;
+    }
+    .kpi-hint{
+      font-size:.83rem;
+      color: var(--muted);
+      margin-top:.25rem;
+    }
+
+    /* Main grid */
+    .grid-main{
+      display:grid;
+      grid-template-columns: minmax(0,1.15fr) minmax(0,1fr);
+      gap: 14px;
+      align-items:start;
+    }
+    @media(max-width: 991px){
+      .grid-main{ grid-template-columns: 1fr; }
+    }
+
+    /* Cards */
+    .cardx{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      padding: 16px 16px 18px;
+    }
+
+    .card-header-inline{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom: .85rem;
+    }
+    .card-title{
+      font-size: .98rem;
+      font-weight: 900;
+      display:flex;
+      align-items:center;
+      gap:.55rem;
+      margin:0;
+    }
+    .card-title-pill{
+      width:10px; height:10px; border-radius:999px;
+      background: linear-gradient(135deg, var(--primary), var(--cd-success));
+      box-shadow: 0 10px 20px rgb(var(--cd-primary-rgb) / 0.20);
+    }
+    .card-sub{
+      font-size: .87rem;
+      color: var(--muted);
+      margin-top:.25rem;
+      max-width: 640px;
+    }
+
+    .badge-secure{
+      border-radius: 999px;
+      font-size: .72rem;
+      padding: .45rem .7rem;
+      border:1px solid rgb(var(--cd-success-rgb) / 0.18);
+      color:var(--cd-success);
+      background: rgb(var(--cd-success-rgb) / 0.08);
+      letter-spacing:.08em;
+      font-weight:800;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+
+    /* Form controls */
+    .form-label{
+      font-size:.86rem;
+      font-weight:700;
+      color: var(--ink);
+      margin-bottom:.35rem;
+    }
+    .help{
+      font-size:.8rem;
+      color: var(--muted);
+      margin-top:.25rem;
+    }
+    .form-control, .form-select{
+      border-radius: 14px;
+      border:1px solid var(--border2);
+      background:var(--cd-card);
+      color: var(--ink);
+      padding: .7rem .85rem;
+      font-size: .92rem;
+    }
+    .form-control:focus, .form-select:focus{
+      border-color: rgb(var(--cd-primary-rgb) / 0.55);
+      box-shadow: 0 0 0 .2rem var(--cd-primary-15);
+      outline:none;
+    }
+
+    /* Buttons */
+    .btn-primary-rounded{
+      border-radius: 14px;
+      border: none;
+      padding: .75rem 1.1rem;
+      font-size: .95rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary), var(--primary2));
+      color: var(--cd-card);
+      box-shadow: 0 18px 35px rgb(var(--cd-primary-rgb) / 0.22);
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .btn-primary-rounded:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 22px 45px rgb(var(--cd-primary-rgb) / 0.28);
+      color:var(--cd-card);
+    }
+
+    /* History list */
+    .hist-item{
+      border-top: 1px dashed rgb(var(--cd-deep-rgb) / 0.14);
+      padding: .7rem 0;
+      font-size: .88rem;
+    }
+    .hist-item:first-child{ border-top:none; padding-top:0; }
+    .hist-when{
+      color: var(--muted);
+      font-size:.82rem;
+      margin-bottom:.15rem;
+      display:flex;
+      align-items:center;
+      gap:.4rem;
+    }
+    .chg-line{
+      display:flex;
+      flex-wrap:wrap;
+      gap:.35rem;
+      align-items:baseline;
+    }
+    .chg-k{ font-weight:900; }
+    .chg-from{ color: var(--muted); }
+    .chg-arrow{ color:var(--cd-muted); }
+    .chg-to{ color: var(--success); font-weight:800; }
+
+    /* Table */
+    .table-wrap{
+      border-radius: var(--radius-lg);
+      border:1px solid var(--border);
+      overflow:hidden;
+      background:var(--cd-card);
+    }
+    .table-sm-custom{
+      font-size:.9rem;
+      margin:0;
+    }
+    .table-sm-custom thead{
+      background: var(--cd-bg);
+    }
+    .table-sm-custom thead th{
+      font-size:.78rem;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--cd-muted);
+      border-bottom:1px solid rgb(var(--cd-deep-rgb) / 0.10)!important;
+      padding: .75rem .8rem;
+      white-space:nowrap;
+    }
+    .table-sm-custom tbody td{
+      padding: .75rem .8rem;
+      border-color: rgb(var(--cd-deep-rgb) / 0.08)!important;
+      vertical-align: middle;
+    }
+    .table-sm-custom tbody tr:hover{
+      background: rgb(var(--cd-primary-rgb) / 0.05);
+    }
+
+    /* Small pills */
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:.35rem;
+      padding:.25rem .55rem;
+      border-radius:999px;
+      font-size:.78rem;
+      font-weight:800;
+      border:1px solid rgb(var(--cd-deep-rgb) / 0.10);
+      background:var(--cd-card);
+      color:var(--cd-deep);
+      white-space:nowrap;
+    }
+    .pill-ok{ border-color: rgb(var(--cd-success-rgb) / 0.18); background: rgb(var(--cd-success-rgb) / 0.08); color:var(--cd-success); }
+    .pill-pend{ border-color: rgb(var(--cd-warning-rgb) / 0.22); background: rgb(var(--cd-warning-rgb) / 0.10); color:var(--cd-warning); }
+
+    /* Responsive spacing tweaks */
+    @media (max-width: 575px){
+      .cardx{ padding: 14px 14px 16px; border-radius: 18px; }
+      .kpi-value{ font-size: 1.25rem; }
+      .page-title h4{ font-size: 1.06rem; }
+      .back-btn{ width:100%; justify-content:center; }
+    }
+
+    /* Simple entrance animation */
+    @keyframes fadeSlide {
+      from{ opacity:0; transform:translateY(10px); }
+      to{ opacity:1; transform:translateY(0); }
+    }
+    .fade-in-up{ animation: fadeSlide .35s ease-out both; }
+  </style>
+</head>
+
+<body>
+  {% include 'customer_sidebar.html' %}
+
+  <div class="content-wrap">
+    <div class="page-inner">
+
+      <div class="page-head fade-in-up">
+        <div class="page-title">
+          <h4><i class="bi bi-wallet2"></i> Payout Settings</h4>
+          <div class="page-sub">
+            Configure where your store profits are sent. Details are kept private and logged for transparency.
+          </div>
+        </div>
+
+        <a class="back-btn" href="{{ url_for('customer_store.customer_store_dashboard', slug=store.slug) }}">
+          <i class="bi bi-arrow-left"></i> Back to Store Dashboard
+        </a>
+      </div>
+
+      <div class="kpi-row fade-in-up">
+        <div class="kpi-box highlight">
+          <div class="kpi-label"><i class="bi bi-cash-coin"></i> Withdrawable</div>
+          <div class="kpi-value" style="color: var(--success);">GHS {{ '%.2f'|format(withdrawable or 0) }}</div>
+          <div class="kpi-hint">Available to move from store profit into your wallet.</div>
+        </div>
+
+        <div class="kpi-box">
+          <div class="kpi-label"><i class="bi bi-wallet"></i> Wallet Balance</div>
+          <div class="kpi-value" style="color: var(--primary2);">GHS {{ '%.2f'|format(wallet_balance or 0) }}</div>
+          <div class="kpi-hint">Current balance ready to be withdrawn to MoMo.</div>
+        </div>
+
+        <div class="kpi-box">
+          <div class="kpi-label"><i class="bi bi-shop"></i> Store</div>
+          <div class="kpi-value" style="font-size:1.02rem;">{{ store.name }}</div>
+          <div class="kpi-hint">Slug: <code>{{ store.slug }}</code></div>
+        </div>
+      </div>
+
+      {% if error %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert" style="border-radius:14px;">
+          <i class="bi bi-exclamation-triangle me-1"></i> {{ error }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endif %}
+
+      <div class="grid-main">
+
+        <!-- LEFT: Form -->
+        <div class="cardx fade-in-up">
+          <div class="card-header-inline">
+            <div>
+              <div class="card-title">
+                <span class="card-title-pill"></span>
+                Mobile Money Account
+              </div>
+              <div class="card-sub">
+                Wallet withdrawals will be sent to this account.
+              </div>
+            </div>
+            <div class="badge-secure"><i class="bi bi-shield-lock me-1"></i> Secure</div>
+          </div>
+
+          <form method="post" action="{{ url_for('customer_store.customer_store_payout_save', slug=store.slug) }}">
+            <div class="mb-3">
+              <label class="form-label">Recipient Name</label>
+              <input type="text"
+                     class="form-control"
+                     name="recipient_name"
+                     required maxlength="120"
+                     value="{{ (current.recipient_name or '') if current else '' }}">
+              <div class="help">Use the exact name registered on the MoMo account.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Phone Number (MSISDN)</label>
+              <input type="tel"
+                     class="form-control"
+                     name="msisdn"
+                     placeholder="e.g. 024XXXXXXX or 23324XXXXXXX"
+                     required maxlength="20"
+                     value="{{ (current.msisdn or '') if current else '' }}">
+              <div class="help">
+                We normalize Ghana numbers to the <code>233XXXXXXXXX</code> format where possible.
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Network</label>
+              <select name="network" class="form-select" required>
+                {% set cur_net = (current.network or '') if current else '' %}
+                <option value="">Select network</option>
+                <option value="MTN"        {% if cur_net=='MTN' %}selected{% endif %}>MTN</option>
+                <option value="VODAFONE"   {% if cur_net=='VODAFONE' %}selected{% endif %}>Vodafone</option>
+                <option value="AIRTELTIGO" {% if cur_net=='AIRTELTIGO' %}selected{% endif %}>AirtelTigo</option>
+              </select>
+              <div class="help"><i class="bi bi-info-circle me-1"></i>Choose the network that matches the number above.</div>
+            </div>
+
+            <div class="mb-3">
+              <div class="help">
+                <i class="bi bi-shield-check me-1"></i>
+                Your payout details are used only to credit wallet withdrawals.
+              </div>
+            </div>
+
+            <div class="d-grid">
+              <button class="btn-primary-rounded" type="submit">
+                <i class="bi bi-save2 me-1"></i> Save Payout Details
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- RIGHT: History + Withdrawals -->
+        <div class="d-flex flex-column gap-3 fade-in-up">
+
+          <div class="cardx">
+            <div class="card-header-inline">
+              <div>
+                <div class="card-title">
+                  <span class="card-title-pill"></span>
+                  Change History
+                </div>
+                <div class="card-sub">Updates to payout details are logged here.</div>
+              </div>
+            </div>
+
+            {% if not history %}
+              <div class="text-muted" style="font-size:.9rem;">No payout changes recorded yet.</div>
+            {% else %}
+              <div>
+                {% for h in history %}
+                  <div class="hist-item">
+                    <div class="hist-when">
+                      <i class="bi bi-clock-history"></i>
+                      {% if h.created_at %}{{ h.created_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}
+                    </div>
+
+                    <div>
+                      {% for k,chg in (h.changes or {}).items() %}
+                        <div class="chg-line">
+                          <span class="chg-k">{{ k|replace('_',' ')|title }}:</span>
+                          <span class="chg-from">{{ chg.from or '-' }}</span>
+                          <span class="chg-arrow">→</span>
+                          <span class="chg-to">{{ chg.to or '-' }}</span>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="cardx">
+            <div class="card-header-inline">
+              <div>
+                <div class="card-title">
+                  <span class="card-title-pill"></span>
+                  Withdrawals History
+                </div>
+                <div class="card-sub">Withdrawals credited from this store into your wallet.</div>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table class="table table-sm table-sm-custom align-middle">
+                <thead>
+                  <tr>
+                    <th>Reference</th>
+                    <th class="text-end">Amount (GHS)</th>
+                    <th>Verified</th>
+                  </tr>
+                </thead>
+                <tbody id="wTable">
+                  <tr>
+                    <td colspan="3">
+                      <div class="d-flex align-items-center gap-2 text-muted small py-2">
+                        <div class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></div>
+                        Loading withdrawals…
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="mt-2 text-muted" style="font-size:.85rem;">
+              <i class="bi bi-lightning-charge me-1"></i>
+              Tip: Withdrawals show once verified by admin.
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // Load withdrawals for this store (customer-facing)
+    (async () => {
+      const body = document.getElementById('wTable');
+      try{
+        const r = await fetch("{{ url_for('customer_store.api_customer_store_withdrawals', slug=store.slug) }}?limit=50");
+        const j = await r.json();
+
+        if (!j.success || !j.items || !j.items.length){
+          body.innerHTML = '<tr><td colspan="3" class="text-muted small">No withdrawals yet.</td></tr>';
+          return;
+        }
+
+        body.innerHTML = j.items.map(it => {
+          const amt = Number(it.amount || 0);
+          const verified = (it.verified_at && String(it.verified_at).trim().length)
+            ? '<span class="pill pill-ok"><i class="bi bi-check2-circle"></i> Verified</span>'
+            : '<span class="pill pill-pend"><i class="bi bi-hourglass-split"></i> Pending</span>';
+
+          return `
+            <tr>
+              <td>${(it.reference || '-')}</td>
+              <td class="text-end fw-bold">${amt.toFixed(2)}</td>
+              <td>${verified}</td>
+            </tr>
+          `;
+        }).join('');
+      }catch(e){
+        body.innerHTML = '<tr><td colspan="3" class="text-danger small">Failed to load withdrawals.</td></tr>';
+      }
+    })();
+  </script>
+</body>
+</html>

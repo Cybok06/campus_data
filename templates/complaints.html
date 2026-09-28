@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Submit Complaint</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/png" href="{{ BRAND_LOGO_URL }}">
+
+  <!-- Bootstrap & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+
+  <style>
+    body { background-color: var(--cd-bg); font-family: 'Segoe UI', sans-serif; }
+    .complaint-form-card { background:var(--cd-card); padding:2rem; border-radius:12px; box-shadow:0 4px 12px rgb(var(--cd-deep-rgb) / 0.05); max-width:700px; margin:0 auto; }
+    .preview-img { max-width:100%; max-height:220px; border-radius:8px; margin-top:10px; border:1px solid var(--cd-border); }
+    h3.title-heading { font-weight:600; color:var(--cd-primary); }
+    .form-label i { color:var(--cd-primary); margin-right:4px; }
+    .hint { font-size:.9rem; color:var(--cd-muted); }
+    .dropzone { border:1.5px dashed var(--cd-border); border-radius:10px; padding:14px; background:var(--cd-bg); transition:background .2s, border-color .2s; }
+    .dropzone.dragover { background:var(--cd-primary-10); border-color:var(--cd-primary); }
+    .visually-hidden-input { position:absolute !important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  </style>
+</head>
+<body>
+  {% include 'customer_sidebar.html' %}
+
+  <div class="container my-5">
+    <div class="complaint-form-card">
+      <h3 class="title-heading mb-4">
+        <i class="bi bi-megaphone-fill"></i> Submit a Complaint
+      </h3>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form action="{{ url_for('complaints.submit_complaint') }}" method="POST" enctype="multipart/form-data" id="complaint-form" novalidate>
+        <!-- Order Number -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold" for="order_number">
+            <i class="bi bi-hash"></i> Order Number
+          </label>
+          <input type="text" id="order_number" name="order_number" class="form-control"
+                 placeholder="Enter your order number (e.g. NAN36071)" required>
+          <div class="form-text hint">You can paste <code>order_no</code>, <code>order_id</code>, or the MongoDB <code>_id</code>.</div>
+          <div class="invalid-feedback">Order number is required.</div>
+        </div>
+
+        <!-- Screenshot: Data Balance -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold" for="screenshot_balance">
+            <i class="bi bi-image-fill"></i> Screenshot of Data Balance
+          </label>
+
+          <!-- Hidden input OUTSIDE label + label uses for="..." (native open) -->
+          <input type="file" id="screenshot_balance" name="screenshot_balance"
+                 class="visually-hidden-input"
+                 accept="image/png, image/jpeg, image/jpg, image/webp" required>
+
+          <label class="dropzone w-100" for="screenshot_balance" id="dz-balance">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-cloud-arrow-up"></i>
+              <span>Click to upload or drag & drop</span>
+            </div>
+          </label>
+
+          <div class="form-text hint">Allowed: PNG, JPG, JPEG, WEBP. Max size: 8MB.</div>
+          <img id="preview_balance" class="preview-img d-none" alt="Balance preview">
+          <div class="invalid-feedback">Please upload a valid data balance screenshot (PNG/JPG/WEBP, ≤ 8MB).</div>
+        </div>
+
+        <!-- Screenshot: Phone Number (MSISDN) -->
+        <div class="mb-4">
+          <label class="form-label fw-semibold" for="screenshot_msisdn">
+            <i class="bi bi-phone"></i> Screenshot of Phone Number (MSISDN)
+          </label>
+
+          <input type="file" id="screenshot_msisdn" name="screenshot_msisdn"
+                 class="visually-hidden-input"
+                 accept="image/png, image/jpeg, image/jpg, image/webp" required>
+
+          <label class="dropzone w-100" for="screenshot_msisdn" id="dz-msisdn">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-cloud-arrow-up"></i>
+              <span>Click to upload or drag & drop</span>
+            </div>
+          </label>
+
+          <div class="form-text hint">Screenshot should clearly show the phone number used. Max size: 8MB.</div>
+          <img id="preview_msisdn" class="preview-img d-none" alt="MSISDN preview">
+          <div class="invalid-feedback">Please upload the phone number screenshot (PNG/JPG/WEBP, ≤ 8MB).</div>
+        </div>
+
+        <div class="d-grid">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-send-check-fill me-1"></i> Submit Complaint
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+    // Client-side checks
+    const MAX_MB = 8;
+    const ALLOWED = ['png','jpg','jpeg','webp'];
+
+    function showInvalid(input, on = true) {
+      const group = input.closest('.mb-3, .mb-4');
+      const feedback = group ? group.querySelector('.invalid-feedback') : null;
+      if (feedback) feedback.style.display = on ? 'block' : '';
+    }
+
+    function previewFile(input, previewEl) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      const okType = ALLOWED.includes(ext);
+      const okSize = file.size <= MAX_MB * 1024 * 1024;
+
+      if (!okType || !okSize) {
+        input.value = '';
+        previewEl.classList.add('d-none');
+        previewEl.removeAttribute('src');
+        showInvalid(input, true);
+        return;
+      }
+      showInvalid(input, false);
+      previewEl.src = URL.createObjectURL(file);
+      previewEl.classList.remove('d-none');
+    }
+
+    // Only DRAG/DROP events wired; no manual click() to avoid re-open loops
+    function wireDropzone(dz, input, preview) {
+      ['dragenter','dragover'].forEach(evt =>
+        dz.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); dz.classList.add('dragover'); })
+      );
+      ['dragleave','drop'].forEach(evt =>
+        dz.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); dz.classList.remove('dragover'); })
+      );
+      dz.addEventListener('drop', e => {
+        const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if (file) {
+          // Set files via DataTransfer for consistency
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          input.files = dt.files;
+          previewFile(input, preview);
+        }
+      });
+
+      // Native open handled by <label for="...">; just listen to change for preview
+      input.addEventListener('change', () => previewFile(input, preview));
+    }
+
+    const inputBalance = document.getElementById('screenshot_balance');
+    const inputMsisdn  = document.getElementById('screenshot_msisdn');
+    const prevBalance  = document.getElementById('preview_balance');
+    const prevMsisdn   = document.getElementById('preview_msisdn');
+    wireDropzone(document.getElementById('dz-balance'), inputBalance, prevBalance);
+    wireDropzone(document.getElementById('dz-msisdn'),  inputMsisdn,  prevMsisdn);
+
+    // Bootstrap-style validation
+    const form = document.getElementById('complaint-form');
+    form.addEventListener('submit', function (e) {
+      if (inputBalance.files.length === 0) showInvalid(inputBalance, true);
+      if (inputMsisdn.files.length === 0) showInvalid(inputMsisdn, true);
+
+      if (!form.checkValidity()) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      form.classList.add('was-validated');
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

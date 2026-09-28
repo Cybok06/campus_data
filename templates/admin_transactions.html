@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin • Transactions</title>
+
+  <link rel="icon" type="image/png" href="{{ BRAND_LOGO_URL }}">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    :root{
+      --ink:var(--cd-deep);
+      --muted:var(--cd-muted);
+      --card:var(--cd-card);
+      --line:var(--cd-border);
+      --bg:var(--cd-bg);
+    }
+    body{ background: var(--bg); color: var(--ink); }
+    .page-wrap{ padding: 1.25rem 0; }
+    .page-title{
+      display:flex; align-items:center; gap:.6rem;
+      font-weight:800;
+    }
+    .page-title i{
+      width:40px; height:40px; display:grid; place-items:center;
+      border-radius:12px;
+      background:var(--cd-primary-10);
+      color:var(--cd-primary);
+      font-size:1.2rem;
+    }
+    .subtle{ color: var(--muted); }
+    .card{
+      border:1px solid var(--line);
+      border-radius:16px;
+      box-shadow: 0 8px 18px rgb(var(--cd-deep-rgb) / 0.05);
+    }
+    .table thead th{
+      white-space: nowrap;
+    }
+    .table td, .table th{
+      vertical-align: middle;
+    }
+    .chip{
+      display:inline-flex; align-items:center; gap:.4rem;
+      padding:.25rem .55rem;
+      border-radius:999px;
+      font-size:.82rem;
+      border:1px solid var(--line);
+      background:var(--cd-card);
+    }
+    .chip i{ font-size:.9rem; }
+    .money{
+      font-weight:800;
+      letter-spacing: .2px;
+    }
+    .ref{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: .9rem;
+    }
+    .filter-grid{
+      display:grid;
+      grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr auto;
+      gap:.75rem;
+      align-items:end;
+    }
+    @media (max-width: 992px){
+      .filter-grid{ grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 576px){
+      .filter-grid{ grid-template-columns: 1fr; }
+    }
+    .pagination .page-link{ border-radius:12px; }
+    .pagination .page-item.active .page-link{
+      background:var(--cd-primary);
+      border-color:var(--cd-primary);
+    }
+    .empty{
+      border:1px dashed var(--line);
+      border-radius:16px;
+      padding:2.25rem 1.25rem;
+      background:var(--cd-card);
+    }
+  </style>
+</head>
+<body>
+
+  {% include 'admin_sidebar.html' %}
+
+  <div class="container page-wrap">
+
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+      <div>
+        <div class="page-title">
+          <i class="bi bi-receipt-cutoff"></i>
+          <span>Transactions</span>
+        </div>
+        <div class="subtle mt-1">
+          View verified payments, filter by customer and date range.
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2">
+        <span class="chip">
+          <i class="bi bi-shield-check"></i>
+          Admin View
+        </span>
+        <span class="chip">
+          <i class="bi bi-funnel"></i>
+          Filters supported
+        </span>
+      </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            <i class="bi bi-info-circle me-1"></i> {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Filters -->
+    <div class="card mb-3">
+      <div class="card-body">
+        <form method="get" class="filter-grid">
+
+          <div>
+            <label class="form-label fw-semibold">Customer</label>
+            <select name="customer" class="form-select" onchange="this.form.submit()">
+              <option value="">All Customers</option>
+              {% for customer in customers %}
+                <option value="{{ customer._id }}"
+                  {% if selected_customer == customer._id|string %}selected{% endif %}>
+                  {{ customer.first_name }} {{ customer.last_name }} — {{ customer.phone }}
+                </option>
+              {% endfor %}
+            </select>
+            <div class="form-text">Select a customer to filter.</div>
+          </div>
+
+          <div>
+            <label class="form-label fw-semibold">Gateway</label>
+            <select name="gateway" class="form-select" onchange="this.form.submit()">
+              <option value="">All Gateways</option>
+              {% for g in gateways %}
+                <option value="{{ g }}" {% if selected_gateway == g %}selected{% endif %}>{{ g }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label fw-semibold">Range</label>
+            <select name="range" class="form-select" onchange="this.form.submit()">
+              <option value="">Custom</option>
+              <option value="today" {% if range_preset == "today" %}selected{% endif %}>Today</option>
+              <option value="yesterday" {% if range_preset == "yesterday" %}selected{% endif %}>Yesterday</option>
+              <option value="last7" {% if range_preset == "last7" %}selected{% endif %}>Last 7 days</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label fw-semibold">Start date</label>
+            <input type="date" name="start_date" value="{{ start_date or '' }}" class="form-control">
+          </div>
+
+          <div>
+            <label class="form-label fw-semibold">End date</label>
+            <input type="date" name="end_date" value="{{ end_date or '' }}" class="form-control">
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="bi bi-search me-1"></i> Apply
+            </button>
+
+            <a class="btn btn-outline-secondary w-100"
+               href="{{ url_for('admin_transactions.admin_view_transactions') }}">
+              <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+            </a>
+          </div>
+
+          <!-- keep page reset when changing filters -->
+          <input type="hidden" name="page" value="1">
+        </form>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="text-center" style="width:70px;">#</th>
+                <th>Customer</th>
+                <th class="text-end" style="width:160px;">Amount (₵)</th>
+                <th class="text-center" style="width:220px;">Reference</th>
+                <th class="text-center" style="width:190px;">Verified</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for txn in transactions %}
+              <tr>
+                <td class="text-center text-muted">
+                  {{ loop.index + ((page - 1) * per_page) }}
+                </td>
+
+                <td>
+                  <div class="fw-semibold">
+                    <i class="bi bi-person-circle me-1 text-secondary"></i>
+                    {{ (txn.user.first_name or '') }} {{ (txn.user.last_name or '') }}
+                  </div>
+                  <div class="small text-muted">
+                    <i class="bi bi-telephone me-1"></i>{{ txn.user.phone or 'N/A' }}
+                  </div>
+                </td>
+
+                <td class="text-end">
+                  <span class="money text-success">₵{{ "%.2f"|format(txn.amount or 0) }}</span>
+                </td>
+
+                <td class="text-center">
+                  <span class="ref">{{ txn.reference or 'N/A' }}</span>
+                </td>
+
+                <td class="text-center">
+                  {% if txn.verified_at %}
+                    <span class="badge text-bg-success">
+                      <i class="bi bi-check2-circle me-1"></i>
+                      {{ txn.verified_at.strftime('%Y-%m-%d %H:%M') }}
+                    </span>
+                  {% else %}
+                    <span class="badge text-bg-secondary">
+                      <i class="bi bi-dash-circle me-1"></i>
+                      N/A
+                    </span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="5">
+                  <div class="empty text-center">
+                    <div class="display-6 mb-1"><i class="bi bi-inbox"></i></div>
+                    <div class="fw-semibold">No transactions found</div>
+                    <div class="text-muted small">Try adjusting filters or reset.</div>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      {% if total_pages > 1 %}
+      <div class="card-footer bg-white border-top-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="text-muted small">Page {{ page }} of {{ total_pages }}</div>
+        <nav>
+          <ul class="pagination pagination-sm mb-0">
+
+            {% set args = request.args.to_dict() %}
+            {% set _ = args.pop('page', None) %}
+            {% set qs = args|dictsort %}
+            {% set qstr = qs|map(attribute=0)|list %}
+            {% set qvals = qs|map(attribute=1)|list %}
+            {% set pairs = [] %}
+            {% for i in range(qstr|length) %}
+              {% set _ = pairs.append(qstr[i] ~ '=' ~ (qvals[i]|urlencode)) %}
+            {% endfor %}
+            {% set qs_joined = pairs|join('&') %}
+
+            {% if page > 1 %}
+              <li class="page-item">
+                <a class="page-link"
+                   href="{{ url_for('admin_transactions.admin_view_transactions') }}{% if qs_joined %}?{{ qs_joined }}&page={{ page-1 }}{% else %}?page={{ page-1 }}{% endif %}">
+                  <i class="bi bi-chevron-left"></i> Prev
+                </a>
+              </li>
+            {% endif %}
+
+            {% for p in range(1, total_pages + 1) %}
+              <li class="page-item {% if p == page %}active{% endif %}">
+                <a class="page-link"
+                   href="{{ url_for('admin_transactions.admin_view_transactions') }}{% if qs_joined %}?{{ qs_joined }}&page={{ p }}{% else %}?page={{ p }}{% endif %}">
+                  {{ p }}
+                </a>
+              </li>
+            {% endfor %}
+
+            {% if page < total_pages %}
+              <li class="page-item">
+                <a class="page-link"
+                   href="{{ url_for('admin_transactions.admin_view_transactions') }}{% if qs_joined %}?{{ qs_joined }}&page={{ page+1 }}{% else %}?page={{ page+1 }}{% endif %}">
+                  Next <i class="bi bi-chevron-right"></i>
+                </a>
+              </li>
+            {% endif %}
+
+          </ul>
+        </nav>
+      </div>
+      {% endif %}
+
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

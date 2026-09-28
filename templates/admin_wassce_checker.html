@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Result Checker Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="{{ BRAND_LOGO_URL }}">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <style>
+    body { background-color: var(--cd-bg); }
+    .status-pill, .type-pill {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 1rem;
+      display: inline-block;
+    }
+    .type-pill.wassce { background-color: var(--cd-primary); color: var(--cd-card); }
+    .type-pill.bece { background-color: var(--cd-accent); color: var(--cd-card); }
+    .border-warning { border-left: 5px solid var(--cd-warning) !important; }
+    .border-success { border-left: 5px solid var(--cd-success) !important; }
+    .card-actions { gap: 0.4rem; flex-wrap: wrap; }
+    .message-text { word-break: break-word; }
+  </style>
+</head>
+<body>
+  {% include 'admin_sidebar.html' %}
+
+  <div class="content-with-sidebar">
+    <div class="container py-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-primary mb-2">📘 Result Checker Management</h2>
+        <a href="?delete_sold=1" class="btn btn-danger btn-sm" onclick="return confirm('Delete ALL sold checkers?')">
+          🗑 Delete All Sold
+        </a>
+      </div>
+
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <!-- Filter Buttons -->
+      <div class="mb-3 d-flex flex-wrap gap-2">
+        <a href="{{ url_for('admin_wassce_checker.admin_wassce_checker') }}" class="btn btn-outline-secondary btn-sm {% if not selected_status and not selected_type %}active{% endif %}">All</a>
+        <a href="{{ url_for('admin_wassce_checker.admin_wassce_checker', status='not_sold') }}" class="btn btn-outline-warning btn-sm {% if selected_status == 'not_sold' %}active{% endif %}">Not Sold</a>
+        <a href="{{ url_for('admin_wassce_checker.admin_wassce_checker', status='sold') }}" class="btn btn-outline-success btn-sm {% if selected_status == 'sold' %}active{% endif %}">Sold</a>
+        <a href="{{ url_for('admin_wassce_checker.admin_wassce_checker', type='wassce') }}" class="btn btn-outline-primary btn-sm {% if selected_type == 'wassce' %}active{% endif %}">WASSCE</a>
+        <a href="{{ url_for('admin_wassce_checker.admin_wassce_checker', type='bece') }}" class="btn btn-outline-dark btn-sm {% if selected_type == 'bece' %}active{% endif %}">BECE</a>
+      </div>
+
+      <!-- Add Message Form -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-body">
+          <form method="POST">
+            <input type="hidden" name="action" value="add">
+            <div class="mb-3">
+              <label for="message" class="form-label fw-semibold">Paste Result Message:</label>
+              <textarea name="message" id="message" rows="4" class="form-control" placeholder="Enter result message..." required></textarea>
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label for="amount" class="form-label fw-semibold">Amount (GHS):</label>
+                <input type="number" step="0.01" name="amount" id="amount" class="form-control" required>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="profit" class="form-label fw-semibold">Profit (GHS):</label>
+                <input type="number" step="0.01" name="profit" id="profit" class="form-control" required>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="type" class="form-label fw-semibold">Checker Type:</label>
+                <select name="type" id="type" class="form-select" required>
+                  <option value="wassce">WASSCE</option>
+                  <option value="bece">BECE</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary">➕ Add Message</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Existing Messages -->
+      <div class="row">
+        {% for m in messages %}
+        <div class="col-md-6 col-lg-4 mb-3">
+          <div class="card h-100 shadow-sm border-start {% if m.status == 'not_sold' %}border-warning{% else %}border-success{% endif %}">
+            <div class="card-body d-flex flex-column justify-content-between">
+              <div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="status-pill bg-light {% if m.status == 'not_sold' %}text-warning{% else %}text-success{% endif %}">
+                    <strong>Status:</strong> {{ m.status | capitalize }}
+                  </span>
+                  <span class="type-pill {{ m.type | lower }}">{{ m.type | upper }}</span>
+                </div>
+                <p class="mb-2"><strong>Amount:</strong> {{ m.amount }} GHS</p>
+                <p class="mb-2"><strong>Profit:</strong> {{ m.profit }} GHS</p>
+                <p class="message-text">{{ m.message }}</p>
+              </div>
+              <div class="d-flex card-actions mt-3">
+                <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editModal{{ m._id }}">✏ Edit</button>
+                <a href="?delete_id={{ m._id }}" class="btn btn-sm btn-danger" onclick="return confirm('Delete this checker?')">🗑 Delete</a>
+              </div>
+              <p class="text-muted small text-end mt-2">{{ m.created_at.strftime("%Y-%m-%d %H:%M") }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Edit Modal -->
+        <div class="modal fade" id="editModal{{ m._id }}" tabindex="-1">
+          <div class="modal-dialog">
+            <form method="POST">
+              <input type="hidden" name="action" value="update">
+              <input type="hidden" name="checker_id" value="{{ m._id }}">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">Edit Checker</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <label class="form-label">Message</label>
+                  <textarea name="message" class="form-control" rows="4">{{ m.message }}</textarea>
+                  <label class="form-label mt-2">Amount</label>
+                  <input type="number" name="amount" step="0.01" value="{{ m.amount }}" class="form-control">
+                  <label class="form-label mt-2">Profit</label>
+                  <input type="number" name="profit" step="0.01" value="{{ m.profit }}" class="form-control">
+                  <label class="form-label mt-2">Type</label>
+                  <select name="type" class="form-select">
+                    <option value="wassce" {% if m.type == 'wassce' %}selected{% endif %}>WASSCE</option>
+                    <option value="bece" {% if m.type == 'bece' %}selected{% endif %}>BECE</option>
+                  </select>
+                </div>
+                <div class="modal-footer">
+                  <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+
+        {% if messages|length == 0 %}
+        <p class="text-center text-muted">No messages added yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

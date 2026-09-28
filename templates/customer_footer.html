@@ -1,0 +1,67 @@
+<footer class="site-footer pt-5 pb-4 mt-5">
+  <div class="container footer-reveal" id="footerBlock">
+    <div class="row g-4">
+      <div class="col-12 col-md-6">
+        <h5 class="footer-title mb-3">{{ BRAND_NAME }}</h5>
+        <p class="mb-2">Email: <a href="mailto:cytech73@gmail.com">cytech73@gmail.com</a></p>
+        <p class="mb-0">Phone: <a href="tel:0257828330">0257828330</a></p>
+      </div>
+
+      <div class="col-12 col-md-6">
+        <h5 class="footer-title mb-3">Follow Us</h5>
+        <div class="footer-social d-flex align-items-center gap-3">
+          <a href="#" aria-label="Facebook"><i class="bi bi-facebook fs-5"></i></a>
+          <a href="#" aria-label="YouTube"><i class="bi bi-youtube fs-5"></i></a>
+          <a href="#" aria-label="TikTok"><i class="bi bi-tiktok fs-5"></i></a>
+          <a href="#" aria-label="Instagram"><i class="bi bi-instagram fs-5"></i></a>
+        </div>
+      </div>
+    </div>
+
+    <hr class="my-4" />
+
+    <div class="footer-credits d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
+      <div>© <span id="yearNow"></span> {{ BRAND_NAME }}. All rights reserved.</div>
+      <div class="mt-2 mt-md-0">
+        Developed by <strong>CYTECH</strong> — <a href="mailto:cytech73@gmail.com">cytech73@gmail.com</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- Footer Styles -->
+<style>
+  .site-footer {
+    background: linear-gradient(90deg, var(--cd-primary), var(--cd-primary));
+    color: var(--cd-card);
+    
+  }
+  footer {
+    margin-bottom: 0px;
+  }
+  .site-footer a {
+    color: var(--cd-card);
+    text-decoration: none;
+  }
+  .site-footer a:hover {
+    text-decoration: underline;
+  }
+  .footer-title {
+    font-weight: 600;
+    font-size: 1.2rem;
+  }
+  .footer-social a {
+    color: var(--cd-card);
+    margin-right: 12px;
+    transition: transform 0.2s;
+  }
+  .footer-social a:hover {
+    transform: scale(1.2);
+    color: var(--cd-warning);
+  }
+</style>
+
+<!-- Year Script -->
+<script>
+  document.getElementById("yearNow").textContent = new Date().getFullYear();
+</script>

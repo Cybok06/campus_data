@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speed Services</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <style>
+    body { background: var(--cd-bg); color: var(--cd-text); }
+    .page-shell { min-height: 100vh; }
+    .page-card {
+      background: var(--cd-card);
+      border: 1px solid var(--cd-border);
+      border-radius: 1rem;
+      box-shadow: 0 18px 50px rgba(16, 24, 40, 0.08);
+    }
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: end;
+      margin-bottom: 1.5rem;
+    }
+    .service-image {
+      width: 72px;
+      height: 72px;
+      object-fit: cover;
+      border-radius: 1rem;
+      border: 1px solid var(--cd-border);
+      background: #fff;
+    }
+    .offer-table input {
+      min-width: 120px;
+    }
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+    .service-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,249,252,0.96));
+      border: 1px solid var(--cd-border);
+      border-radius: 1.2rem;
+      padding: 1.1rem;
+      box-shadow: 0 16px 40px rgba(16, 24, 40, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .service-card-top {
+      display: flex;
+      align-items: center;
+      gap: .9rem;
+    }
+    .service-card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem;
+    }
+    .meta-pill {
+      border-radius: 999px;
+      padding: .35rem .65rem;
+      background: rgba(13, 110, 253, 0.08);
+      color: var(--cd-text);
+      font-size: .82rem;
+      font-weight: 600;
+    }
+    .offer-preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .45rem;
+    }
+    .offer-chip {
+      border-radius: 999px;
+      padding: .4rem .7rem;
+      background: rgba(15, 23, 42, 0.06);
+      font-size: .82rem;
+      color: var(--cd-text);
+    }
+    .action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .6rem;
+    }
+    .action-row form {
+      flex: 1 1 140px;
+    }
+    .section-title {
+      font-size: .9rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--cd-muted);
+    }
+    @media (max-width: 768px) {
+      .hero { flex-direction: column; align-items: start; }
+    }
+  </style>
+</head>
+<body>
+  {% include 'admin_sidebar.html' %}
+
+  <main class="customer-content">
+    <div class="page-shell">
+      <div class="hero">
+        <div>
+          <div class="section-title">External Database</div>
+          <h1 class="h3 mb-1">Speed Services</h1>
+        </div>
+        <div class="text-muted small">
+          {{ services|length }} service{% if services|length != 1 %}s{% endif %}
+        </div>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ 'warning' if category == 'message' else category }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      {% if not services %}
+        <div class="page-card p-4">
+          <p class="mb-0 text-muted">No services found in the Speedlink database.</p>
+        </div>
+      {% endif %}
+
+      <div class="services-grid">
+        {% for service in services %}
+          <section class="service-card">
+            <div class="service-card-top">
+              <img
+                src="{{ service.image_url or 'https://via.placeholder.com/72x72?text=Svc' }}"
+                alt="{{ service.name }}"
+                class="service-image"
+              >
+              <div class="flex-grow-1">
+                <h2 class="h5 mb-1">{{ service.name or 'Unnamed Service' }}</h2>
+                <div class="text-muted small">Updated: {{ service.updated_at.strftime('%Y-%m-%d %H:%M') if service.updated_at else '-' }}</div>
+              </div>
+            </div>
+
+            <div class="service-card-meta">
+              <span class="meta-pill">Provider: {{ service.provider or '-' }}</span>
+              <span class="meta-pill">Status: {{ service.status or '-' }}</span>
+              <span class="meta-pill">Availability: {{ service.availability or '-' }}</span>
+            </div>
+
+            <div class="action-row">
+              <form method="POST" action="{{ url_for('admin_speed_services.update_speed_service_status', service_id=service._id_str) }}">
+                <input type="hidden" name="status" value="{{ 'closed' if service.status == 'OPEN' else 'open' }}">
+                <button type="submit" class="btn btn-outline-dark w-100">
+                  {{ 'Mark Closed' if service.status == 'OPEN' else 'Mark Open' }}
+                </button>
+              </form>
+              <form method="POST" action="{{ url_for('admin_speed_services.update_speed_service_availability', service_id=service._id_str) }}">
+                <input type="hidden" name="availability" value="{{ 'out_of_stock' if service.availability == 'AVAILABLE' else 'available' }}">
+                <button type="submit" class="btn btn-outline-warning w-100">
+                  {{ 'Mark Out Of Stock' if service.availability == 'AVAILABLE' else 'Mark Available' }}
+                </button>
+              </form>
+            </div>
+
+            <div>
+              <div class="section-title mb-2">Offers</div>
+              <div class="offer-preview">
+                {% for offer in (service.offers or [])[:4] %}
+                  <span class="offer-chip">{{ offer.label }}: {{ offer.amount if offer.amount is not none else '-' }}</span>
+                {% else %}
+                  <span class="text-muted">No offers available.</span>
+                {% endfor %}
+                {% if (service.offers or [])|length > 4 %}
+                  <span class="offer-chip">+{{ (service.offers or [])|length - 4 }} more</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="mt-auto">
+              <button
+                type="button"
+                class="btn btn-primary w-100"
+                data-bs-toggle="modal"
+                data-bs-target="#editPriceModal{{ service._id_str }}"
+              >
+                Edit Price
+              </button>
+            </div>
+          </section>
+        {% endfor %}
+      </div>
+
+      {% for service in services %}
+        <div class="modal fade" id="editPriceModal{{ service._id_str }}" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+              <form method="POST" action="{{ url_for('admin_speed_services.update_speed_service_prices', service_id=service._id_str) }}">
+                <div class="modal-header">
+                  <div>
+                    <h3 class="modal-title h5 mb-1">{{ service.name or 'Unnamed Service' }}</h3>
+                    <div class="text-muted small">Edit service offer prices</div>
+                  </div>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                  <div class="table-responsive">
+                    <table class="table align-middle offer-table">
+                      <thead>
+                        <tr>
+                          <th>Offer</th>
+                          <th>Current Price</th>
+                          <th>Edit Price</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for offer in service.offers or [] %}
+                          <tr>
+                            <td>{{ offer.label }}</td>
+                            <td>{{ offer.amount if offer.amount is not none else '-' }}</td>
+                            <td>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                name="offers_amount[]"
+                                value="{{ offer.amount if offer.amount is not none else '' }}"
+                                class="form-control"
+                              >
+                            </td>
+                          </tr>
+                        {% else %}
+                          <tr>
+                            <td colspan="3" class="text-muted">No offers available.</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                  <button type="submit" class="btn btn-primary">Save Prices</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </main>
+</body>
+</html>

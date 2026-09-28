@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>{{ (store and store.name) or 'My Store' }} — Store Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+  <link rel="icon" type="image/png" href="{{ BRAND_LOGO_URL }}">
+
+  <style>
+    :root{
+      --clr-bg: var(--cd-bg);
+      --clr-bg-soft:var(--cd-bg);
+      --clr-primary:var(--cd-primary);
+      --clr-primary-soft:var(--cd-primary-10);
+      --clr-secondary:var(--cd-success);
+      --clr-accent:var(--cd-warning);
+      --clr-text:var(--cd-text);
+      --clr-muted:var(--cd-muted);
+      --clr-card:var(--cd-card);
+      --clr-ring:var(--cd-border);
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --shadow-soft: 0 18px 45px rgb(var(--cd-deep-rgb) / 0.08);
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: system-ui,-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--clr-bg);
+      color:var(--clr-text);
+      min-height:100vh;
+    }
+
+    .nav-shell{
+      border-bottom:1px solid var(--cd-border);
+      backdrop-filter: blur(10px);
+      background:var(--cd-card);
+      position:sticky;
+      top:0;
+      z-index:1050;
+      box-shadow:0 8px 24px rgb(var(--cd-deep-rgb) /.04);
+    }
+
+    .app-nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:.65rem 0;
+      gap:.75rem;
+    }
+    .app-title{
+      display:flex;
+      align-items:center;
+      gap:.75rem;
+      min-width:0;
+    }
+    .logo-pill{
+      width:40px;
+      height:40px;
+      border-radius:999px;
+      display:inline-grid;
+      place-items:center;
+      background:radial-gradient(circle at 30% 0, var(--cd-primary-10), var(--cd-primary));
+      border:1px solid var(--cd-border);
+      box-shadow:0 8px 20px rgb(var(--cd-primary-rgb) / 0.25);
+      color:var(--cd-deep);
+      flex:0 0 auto;
+    }
+    .app-heading{
+      font-size:1.05rem;
+      font-weight:700;
+      letter-spacing:.03em;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width:70vw;
+    }
+    .app-sub{
+      font-size:.8rem;
+      color:var(--clr-muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width:70vw;
+    }
+    .owner-chip{
+      border-radius:999px;
+      padding:.25rem .8rem;
+      border:1px solid var(--cd-border);
+      font-size:.8rem;
+      display:flex;
+      align-items:center;
+      gap:.4rem;
+      color:var(--clr-muted);
+      background:var(--cd-card);
+      flex:0 0 auto;
+      max-width:45vw;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .page-wrap{
+      max-width:1120px;
+      margin:1.5rem auto 3rem;
+      padding:0 1rem;
+    }
+
+    .hero-shell{
+      border-radius:var(--radius-lg);
+      border:1px solid var(--cd-border);
+      background:
+        radial-gradient(circle at 0 -20%, rgb(var(--cd-primary-rgb) /.18), transparent 55%),
+        radial-gradient(circle at 110% 0, rgb(var(--cd-success-rgb) /.18), transparent 60%),
+        linear-gradient(135deg,var(--cd-card),var(--cd-bg));
+      padding:1.4rem 1.6rem;
+      box-shadow:var(--shadow-soft);
+      position:relative;
+      overflow:hidden;
+    }
+
+    .hero-shell::after{
+      content:"";
+      position:absolute;
+      inset:auto -80px -90px;
+      height:180px;
+      background: radial-gradient(circle at 50% 0, rgb(var(--cd-white-rgb) / 0), rgb(var(--cd-muted-rgb) / 0.22));
+      pointer-events:none;
+    }
+
+    .hero-main{
+      display:flex;
+      flex-wrap:wrap;
+      gap:1.1rem;
+      align-items:center;
+      justify-content:space-between;
+      position:relative;
+      z-index:1;
+    }
+
+    .hero-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:.3rem;
+      font-size:.78rem;
+      padding:.18rem .6rem;
+      border-radius:999px;
+      border:1px solid var(--cd-border);
+      color:var(--clr-muted);
+      background:var(--cd-bg);
+    }
+    .hero-title{
+      font-size:1.25rem;
+      font-weight:800;
+      margin-bottom:.1rem;
+      color:var(--cd-text);
+    }
+    .hero-url{
+      font-size:.8rem;
+      color:var(--clr-muted);
+      word-break:break-all;
+    }
+
+    .hero-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:.5rem;
+      align-items:center;
+    }
+    .btn-glow{
+      border-radius:999px;
+      border:none;
+      padding:.46rem .95rem;
+      font-size:.85rem;
+      font-weight:600;
+      display:inline-flex;
+      align-items:center;
+      gap:.45rem;
+      color:var(--cd-card);
+      background:linear-gradient(135deg,var(--cd-success),var(--cd-success));
+      box-shadow:0 12px 30px rgb(var(--cd-success-rgb) / 0.35);
+      text-decoration:none;
+    }
+    .btn-ghost{
+      border-radius:999px;
+      padding:.44rem .9rem;
+      font-size:.83rem;
+      display:inline-flex;
+      align-items:center;
+      gap:.45rem;
+      border:1px solid var(--cd-border);
+      color:var(--cd-text);
+      background:var(--cd-card);
+      text-decoration:none;
+      white-space:nowrap;
+    }
+    .btn-shadow{
+      box-shadow:0 12px 28px rgb(var(--cd-deep-rgb) / 0.12);
+    }
+    .btn-ghost:hover{ background:var(--cd-bg); }
+    .btn-soft{
+      border-radius:999px;
+      padding:.4rem .85rem;
+      border:none;
+      font-size:.82rem;
+      display:inline-flex;
+      align-items:center;
+      gap:.45rem;
+      background:var(--cd-bg);
+      color:var(--cd-muted);
+      white-space:nowrap;
+    }
+
+    .share-inline{
+      margin-top:1rem;
+      border-radius:var(--radius-md);
+      border:1px dashed var(--cd-border);
+      background:var(--cd-bg);
+      padding:.6rem .7rem;
+      display:flex;
+      flex-wrap:wrap;
+      gap:.6rem;
+      align-items:center;
+    }
+    .share-input{
+      flex:1 1 180px;
+      border-radius:999px;
+      border:1px solid var(--cd-border);
+      padding:.35rem .75rem;
+      font-size:.8rem;
+      background:var(--cd-card);
+      color:var(--clr-text);
+      font-family:ui-monospace,SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    .share-input:focus{
+      outline:none;
+      box-shadow:0 0 0 1px rgb(var(--cd-primary-rgb) / 0.35);
+      border-color:var(--clr-primary);
+    }
+    .share-actions{ display:flex; gap:.4rem; flex-wrap:wrap; }
+
+    /* KPIs */
+    .kpi-grid{
+      display:grid;
+      grid-template-columns:repeat(5,minmax(0,1fr));
+      gap:1rem;
+      margin-top:1.7rem;
+    }
+    @media(max-width:991px){ .kpi-grid{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
+    @media(max-width:767px){ .kpi-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+    .kpi-card{
+      border-radius:var(--radius-md);
+      border:1px solid var(--cd-border);
+      background:var(--clr-card);
+      padding:.75rem .8rem;
+      position:relative;
+      overflow:hidden;
+      box-shadow:0 12px 30px rgb(var(--cd-deep-rgb) /.04);
+    }
+    .kpi-card::before{
+      content:"";
+      position:absolute;
+      inset:-40% auto auto -40%;
+      width:110px;height:110px;
+      background:radial-gradient(circle, rgb(var(--cd-primary-rgb) /.12), transparent 65%);
+      opacity:.8;
+      pointer-events:none;
+    }
+    .kpi-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      position:relative;
+      z-index:1;
+      gap:.5rem;
+    }
+    .kpi-label{
+      font-size:.78rem;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:var(--clr-muted);
+    }
+    .kpi-icon{
+      width:30px;height:30px;
+      border-radius:999px;
+      display:inline-grid;
+      place-items:center;
+      font-size:.9rem;
+      background:var(--cd-bg);
+      border:1px solid var(--cd-border);
+      color:var(--clr-primary);
+      flex:0 0 auto;
+    }
+    .kpi-value{
+      font-weight:800;
+      font-size:1.4rem;
+      margin-top:.35rem;
+      color:var(--cd-text);
+      position:relative;
+      z-index:1;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .kpi-sub{ font-size:.78rem; color:var(--clr-muted); position:relative; z-index:1; }
+
+    /* Sections */
+    .section-shell{
+      margin-top:2rem;
+      border-radius:var(--radius-lg);
+      border:1px solid var(--cd-border);
+      background:var(--clr-card);
+      padding:1rem 1.1rem 1.15rem;
+      box-shadow:var(--shadow-soft);
+    }
+    .section-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:.75rem;
+      margin-bottom:.7rem;
+      flex-wrap:wrap;
+    }
+    .section-title{
+      font-size:.9rem;
+      font-weight:700;
+      display:flex;
+      align-items:center;
+      gap:.4rem;
+      color:var(--cd-text);
+    }
+    .section-dot{
+      width:9px;height:9px;border-radius:50%;
+      background:linear-gradient(135deg,var(--cd-success),var(--cd-primary));
+    }
+    .section-sub{ font-size:.78rem; color:var(--clr-muted); max-width:72ch; }
+
+    .table-custom{ font-size:.8rem; color:var(--clr-text); }
+    .table-custom thead{ background:var(--cd-bg); border-bottom:1px solid var(--cd-border); }
+    .table-custom thead th{ border-bottom:none!important; color:var(--clr-muted); font-weight:600; }
+    .table-custom tbody tr{ border-color:var(--cd-border); }
+    .table-custom tbody tr:hover{ background:var(--cd-bg); }
+
+    /* Better mobile legibility */
+    .nowrap{ white-space:nowrap; }
+    .phone-cell{
+      max-width: 220px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    @media (max-width: 767.98px){
+      .phone-cell{ max-width: 160px; }
+    }
+
+    .badge-soft{
+      border-radius:999px;
+      padding:.18rem .6rem;
+      font-size:.75rem;
+      border:1px solid var(--cd-border);
+      background:var(--cd-bg);
+      color:var(--cd-text);
+      display:inline-flex;
+      align-items:center;
+      gap:.35rem;
+      white-space:nowrap;
+    }
+
+    .status-pill{
+      border-radius:999px;
+      padding:.15rem .55rem;
+      font-size:.72rem;
+      font-weight:600;
+      display:inline-flex;
+      align-items:center;
+      gap:.35rem;
+      white-space:nowrap;
+    }
+    .status-processing{ background:rgb(var(--cd-warning-rgb) / 0.12); color:var(--cd-warning); }
+    .status-completed{ background:var(--cd-success-10); color:var(--cd-success); }
+    .status-failed{ background:rgb(var(--cd-error-rgb) / 0.12); color:var(--cd-error); }
+    .status-other{ background:rgb(var(--cd-muted-rgb) / 0.18); color:var(--cd-muted); }
+
+    .status-pending{ background:rgb(var(--cd-warning-rgb) / 0.12); color:var(--cd-warning); }
+    .status-paid{ background:var(--cd-success-10); color:var(--cd-success); }
+    .status-rejected{ background:rgb(var(--cd-error-rgb) / 0.12); color:var(--cd-error); }
+
+    .empty-state{
+      border-radius:var(--radius-lg);
+      border:1px dashed var(--cd-border);
+      background:var(--cd-card);
+      padding:2.2rem 1.3rem;
+      text-align:center;
+      margin-top:1.5rem;
+      box-shadow:0 18px 45px rgb(var(--cd-deep-rgb) /.05);
+    }
+    .empty-title{ font-weight:700; margin-bottom:.4rem; color:var(--cd-text); }
+    .empty-text{
+      font-size:.86rem;
+      color:var(--clr-muted);
+      max-width:420px;
+      margin:0 auto 1.1rem;
+    }
+    .btn-empty-primary{
+      border-radius:999px;
+      padding:.48rem 1.3rem;
+      font-size:.86rem;
+      border:none;
+      background:linear-gradient(135deg,var(--cd-primary),var(--cd-primary));
+      color:var(--cd-card);
+      font-weight:600;
+      box-shadow:0 18px 45px rgb(var(--cd-primary-rgb) /.35);
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:.45rem;
+      justify-content:center;
+    }
+
+    .spinner-inline{
+      display:inline-flex;
+      align-items:center;
+      gap:.45rem;
+      font-size:.8rem;
+      color:var(--clr-muted);
+    }
+
+    @keyframes fadeSlide {
+      from{ opacity:0; transform:translateY(8px);}
+      to{ opacity:1; transform:translateY(0);}
+    }
+    .fade-in-up{ animation:fadeSlide .45s ease-out forwards; }
+
+    /* Toast */
+    .toast-dark{
+      background:var(--cd-text);
+      color:var(--cd-bg);
+      border-radius:999px;
+      border:0;
+      box-shadow:0 18px 40px rgb(var(--cd-deep-rgb) /.35);
+    }
+    .toast-dark .btn-close{ filter:invert(1); }
+
+    /* Inputs */
+    .searchbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:.5rem;
+      align-items:center;
+      justify-content:flex-end;
+      width:100%;
+    }
+    .searchbar .form-control{
+      border-radius:999px;
+      font-size:.85rem;
+      border:1px solid var(--cd-border);
+      max-width:360px;
+      width:100%;
+    }
+
+    .help-mini{ font-size:.78rem; color:var(--clr-muted); }
+
+    .auto-withdraw-card{
+      border-radius:14px;
+      border:1px dashed var(--cd-border);
+      background:var(--cd-bg);
+      padding:.8rem;
+      display:flex;
+      flex-wrap:wrap;
+      gap:.6rem;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .auto-withdraw-form{
+      display:flex;
+      flex-wrap:wrap;
+      gap:.5rem;
+      align-items:center;
+    }
+    .auto-withdraw-form .form-control,
+    .auto-withdraw-form .form-select{
+      border-radius:999px;
+      font-size:.82rem;
+    }
+
+    @media (max-width: 767.98px){
+      .app-nav{ flex-direction:column; align-items:flex-start; }
+      .owner-chip{ align-self:flex-start; max-width:100%; }
+      .searchbar{ justify-content:flex-start; }
+      .hero-actions{ width:100%; }
+      .btn-ghost,.btn-soft,.btn-glow{ width:100%; justify-content:center; }
+      .share-actions{ width:100%; }
+      .share-actions .btn-soft{ flex:1 1 auto; justify-content:center; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="nav-shell">
+    <div class="page-wrap app-nav">
+      <div class="app-title">
+        <div class="logo-pill">
+          <i class="bi bi-shop-window"></i>
+        </div>
+        <div>
+          <div class="app-heading">
+            {{ (store and store.name) or 'My Store' }} · Dashboard
+          </div>
+          <div class="app-sub">
+            Smart view of your store performance in real time.
+          </div>
+          <a href="{{ url_for('customer_dashboard.customer_dashboard') }}" class="btn-ghost btn-shadow mt-2">
+            <i class="bi bi-arrow-left"></i> Back to  Dashboard
+          </a>
+        </div>
+      </div>
+      <div class="owner-chip" title="{{ owner_name }}">
+        <i class="bi bi-person-circle"></i>
+        <span>{{ owner_name }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-wrap">
+
+    {% if not store or not store.slug %}
+      <div class="empty-state fade-in-up">
+        <div class="mb-3">
+          <span class="badge-soft"><i class="bi bi-stars"></i>Store Earnings Hub</span>
+        </div>
+        <h5 class="empty-title">You haven’t set up a store dashboard yet</h5>
+        <p class="empty-text">
+          Create your first store, connect your services and start tracking sales, profits
+          and withdrawals — all from one clean dashboard.
+        </p>
+        <a href="{{ url_for('stores.create_store_page') }}" class="btn-empty-primary">
+          <i class="bi bi-plus-circle"></i> Create / Configure Your Store
+        </a>
+      </div>
+
+    {% else %}
+
+      <!-- HERO -->
+      <section class="hero-shell fade-in-up">
+        <div class="hero-main">
+          <div>
+            <div class="hero-badge mb-1">
+              <span class="text-success"><i class="bi bi-circle-fill" style="font-size:.45rem;"></i></span>
+              <span>Live Store</span>
+            </div>
+            <div class="hero-title">
+              {{ store.name }} <span class="text-success">· Earnings</span>
+            </div>
+            <div class="hero-url small">
+              Store URL:
+              <code>{{ store_scheme }}://{{ store_host }}/s/{{ store.slug }}</code>
+            </div>
+          </div>
+          <div class="hero-actions">
+            <a href="{{ url_for('stores.create_store_page') }}" class="btn-glow">
+              <i class="bi bi-pencil-square"></i>
+              <span>Edit Store</span>
+            </a>
+
+            <a href="{{ store_scheme }}://{{ store_host }}/s/{{ store.slug }}"
+               target="_blank" rel="noopener"
+               class="btn-ghost">
+              <i class="bi bi-box-arrow-up-right"></i> View Store
+            </a>
+
+            <a href="{{ url_for('customer_store.customer_store_payout_page', slug=store.slug) }}"
+               class="btn-ghost">
+              <i class="bi bi-wallet2"></i> Payout Settings
+            </a>
+
+            <button class="btn-ghost" type="button" id="btnOpenWithdraw" {% if (withdrawable or 0) < 20 %}disabled title="Profit balance must be at least GHS 20.00"{% endif %}>
+              <i class="bi bi-cash-stack"></i> Request Withdraw
+            </button>
+          </div>
+        </div>
+
+        <!-- Inline share -->
+        <div class="share-inline mt-3"
+             id="shareStrip"
+             data-store-url="{{ store_scheme }}://{{ store_host }}/s/{{ store.slug }}"
+             data-store-name="{{ store.name or 'My Store' }}">
+          <div class="spinner-inline d-none" id="shareSpinner">
+            <div class="spinner-border spinner-border-sm text-info" role="status">
+              <span class="visually-hidden">Loading…</span>
+            </div>
+            Preparing share link…
+          </div>
+
+          <input class="share-input" id="storeUrlInput" readonly
+                 value="{{ store_scheme }}://{{ store_host }}/s/{{ store.slug }}">
+
+          <div class="share-actions">
+            <button type="button" class="btn-soft" id="btnCopyLink">
+              <i class="bi bi-clipboard-check"></i> Copy
+            </button>
+            <button type="button" class="btn-soft" id="btnWspInline">
+              <i class="bi bi-whatsapp"></i> WhatsApp
+            </button>
+            <button type="button" class="btn-soft d-none d-sm-inline-flex" id="btnSystemShare">
+              <i class="bi bi-send"></i> Share
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- KPIs -->
+      <section class="kpi-grid fade-in-up">
+        <div class="kpi-card">
+          <div class="kpi-head">
+            <div class="kpi-label">Total Sales</div>
+            <div class="kpi-icon"><i class="bi bi-cash-coin"></i></div>
+          </div>
+          <div class="kpi-value">GHS {{ '%.2f'|format(all_time_sales) }}</div>
+          <div class="kpi-sub">All-time via your store link</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-head">
+            <div class="kpi-label">Profit · Today</div>
+            <div class="kpi-icon"><i class="bi bi-graph-up-arrow"></i></div>
+          </div>
+          <div class="kpi-value">GHS {{ '%.2f'|format(profit_today) }}</div>
+          <div class="kpi-sub">{{ today_str }}</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-head">
+            <div class="kpi-label">Profit · All Time</div>
+            <div class="kpi-icon"><i class="bi bi-piggy-bank"></i></div>
+          </div>
+          <div class="kpi-value">GHS {{ '%.2f'|format(all_time_profit) }}</div>
+          <div class="kpi-sub">{{ orders_count }} orders recorded</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-head">
+            <div class="kpi-label">Profit Balance</div>
+            <div class="kpi-icon"><i class="bi bi-bank"></i></div>
+          </div>
+          <div class="kpi-value text-success" id="kpiWithdrawable">GHS {{ '%.2f'|format(withdrawable or 0) }}</div>
+          <div class="kpi-sub">Eligible for withdrawal request</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-head">
+            <div class="kpi-label">Wallet Balance</div>
+            <div class="kpi-icon"><i class="bi bi-wallet2"></i></div>
+          </div>
+          <div class="kpi-value text-info" id="kpiWallet">GHS {{ '%.2f'|format(wallet_balance or 0) }}</div>
+          <div class="kpi-sub">Available when admin pays to wallet</div>
+        </div>
+      </section>
+
+      <!-- Withdrawal Requests -->
+      <section class="section-shell fade-in-up">
+        <div class="section-head">
+          <div>
+            <div class="section-title">
+              <span class="section-dot"></span>
+              Withdrawal Requests
+            </div>
+            <div class="section-sub">
+              Submit a withdrawal request (MoMo or {{ BRAND_NAME }} Wallet). Admin will mark it paid.
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn-ghost btn-sm" type="button" id="btnRefreshRequests">
+              <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+            </button>
+            <button class="btn-glow btn-sm" type="button" id="btnOpenWithdraw2" {% if (withdrawable or 0) < 20 %}disabled title="Profit balance must be at least GHS 20.00"{% endif %}>
+              <i class="bi bi-cash-stack me-1"></i> Request Withdraw
+            </button>
+          </div>
+        </div>
+
+        <div class="auto-withdraw-card mt-3">
+          <div>
+            <div class="fw-semibold small">Auto Withdrawal</div>
+            <div class="small text-muted">Auto-send a request when profit balance reaches your amount (min GHS 20).</div>
+          </div>
+          <div class="auto-withdraw-form">
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" id="autoWdEnabled">
+              <label class="form-check-label small" for="autoWdEnabled">Enable</label>
+            </div>
+            <input type="number" class="form-control form-control-sm" id="autoWdAmount" min="20" step="0.01" placeholder="Amount (GHS)" style="width:140px;">
+            <select class="form-select form-select-sm" id="autoWdMethod" style="width:170px;">
+              <option value="momo">MoMo</option>
+              <option value="wallet">Wallet</option>
+            </select>
+            <button class="btn-ghost btn-sm" type="button" id="autoWdSave">
+              <i class="bi bi-save2 me-1"></i> Save
+            </button>
+          </div>
+        </div>
+        <div class="help-mini mt-2" id="autoWdHint"></div>
+
+        <div class="table-responsive">
+          <table class="table table-borderless table-custom align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Reference</th>
+                <th>Method</th>
+                <th class="text-end">Amount (GHS)</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Updated</th>
+              </tr>
+            </thead>
+            <tbody id="reqRows">
+              <tr>
+                <td colspan="6">
+                  <div class="spinner-inline">
+                    <div class="spinner-border spinner-border-sm text-info" role="status">
+                      <span class="visually-hidden">Loading…</span>
+                    </div>
+                    Loading withdrawal requests…
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="help-mini mt-2">
+          <i class="bi bi-info-circle me-1"></i>
+          Tip: MoMo uses your payout settings. Wallet credits will reflect in your {{ BRAND_NAME }} Wallet when paid.
+        </div>
+      </section>
+
+      <!-- Recent withdrawals -->
+      <section class="section-shell fade-in-up">
+        <div class="section-head">
+          <div>
+            <div class="section-title">
+              <span class="section-dot"></span>
+              Recent Withdrawals
+            </div>
+            <div class="section-sub">
+              Paid withdrawals history (what has already been settled).
+            </div>
+          </div>
+          <a class="btn-ghost btn-sm" href="{{ url_for('customer_store.customer_store_payout_page', slug=store.slug) }}">
+            <i class="bi bi-arrow-right-circle me-1"></i> Payout settings
+          </a>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-borderless table-custom align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Reference</th>
+                <th class="text-end">Amount (GHS)</th>
+                <th>Created</th>
+                <th>Verified</th>
+                <th>Note</th>
+              </tr>
+            </thead>
+            <tbody id="wRows">
+              <tr>
+                <td colspan="5">
+                  <div class="spinner-inline">
+                    <div class="spinner-border spinner-border-sm text-info" role="status">
+                      <span class="visually-hidden">Loading…</span>
+                    </div>
+                    Loading withdrawals…
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Top offers -->
+      <section class="section-shell fade-in-up">
+        <div class="section-head">
+          <div>
+            <div class="section-title">
+              <span class="section-dot"></span>
+              Top Offers
+            </div>
+            <div class="section-sub">Bundles and services your customers love the most.</div>
+          </div>
+        </div>
+
+        {% if not top_offers %}
+          <div class="section-sub">No orders yet — once customers buy, your best-performing offers will appear here.</div>
+        {% else %}
+          <div class="table-responsive">
+            <table class="table table-borderless table-custom align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Service</th>
+                  <th>Offer</th>
+                  <th class="text-end">Orders</th>
+                  <th class="text-end">Revenue (GHS)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for o in top_offers %}
+                  <tr>
+                    <td><span class="badge-soft">{{ o.service }}</span></td>
+                    <td>{{ o.label or '-' }}</td>
+                    <td class="text-end">{{ o.count }}</td>
+                    <td class="text-end"><strong>{{ '%.2f'|format(o.revenue) }}</strong></td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      </section>
+
+      <!-- Orders -->
+      <section class="section-shell fade-in-up">
+        <div class="section-head">
+          <div>
+            <div class="section-title">
+              <span class="section-dot"></span>
+              Orders
+            </div>
+            <div class="section-sub">
+              Shows latest 10 by default — search any order by <strong>Order ID</strong> or <strong>Phone</strong>.
+            </div>
+          </div>
+
+          <div class="searchbar">
+            <input type="search" class="form-control" id="orderSearch"
+                   placeholder="Search by Order ID or phone (e.g. ORD-... / 024xxxxxxx)">
+            <button class="btn-ghost btn-sm" id="btnClearOrderSearch" type="button">
+              <i class="bi bi-x-circle me-1"></i> Clear
+            </button>
+          </div>
+        </div>
+
+        <div class="help-mini mb-2" id="orderHint">
+          <i class="bi bi-clock-history me-1"></i>
+          Showing latest 10 orders.
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-borderless table-custom align-middle mb-0">
+            <thead>
+              <tr>
+                <th class="nowrap">Order ID</th>
+                <th class="nowrap">Phone</th>
+                <th class="nowrap">Status</th>
+                <th class="text-end nowrap">Items</th>
+                <th class="text-end nowrap">Charged (GHS)</th>
+                <th class="text-end nowrap">Profit (GHS)</th>
+                <th class="text-end nowrap">Total (GHS)</th>
+                <th class="nowrap">Created</th>
+              </tr>
+            </thead>
+            <tbody id="orderRows">
+              {% if not recent_orders %}
+                <tr><td colspan="8" class="text-muted small">No recent orders yet.</td></tr>
+              {% else %}
+                {% for o in recent_orders %}
+                  <tr>
+                    <td class="text-break"><code>{{ o.order_id }}</code></td>
+                    <td class="phone-cell" title="{{ o.phone_summary or '-' }}">
+                      <span class="badge-soft"><i class="bi bi-telephone"></i>{{ o.phone_primary or '-' }}</span>
+                      {% if o.phone_count and o.phone_count > 1 %}
+                        <span class="text-muted small ms-1">+{{ o.phone_count - 1 }}</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if o.status == 'processing' %}
+                        <span class="status-pill status-processing">processing</span>
+                      {% elif o.status == 'completed' %}
+                        <span class="status-pill status-completed">completed</span>
+                      {% elif o.status == 'failed' %}
+                        <span class="status-pill status-failed">failed</span>
+                      {% else %}
+                        <span class="status-pill status-other">{{ o.status or '-' }}</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-end">{{ o.items_count }}</td>
+                    <td class="text-end">{{ '%.2f'|format(o.charged_amount or 0) }}</td>
+                    <td class="text-end">{{ '%.2f'|format(o.profit_amount_total or 0) }}</td>
+                    <td class="text-end"><strong>{{ '%.2f'|format(o.total_amount or 0) }}</strong></td>
+                    <td>
+                      {% if o.created_at %}
+                        {{ o.created_at.strftime('%Y-%m-%d %H:%M') if o.created_at.__class__.__name__ == 'datetime' else o.created_at }}
+                      {% else %}-{% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    {% endif %}
+  </div>
+
+  <!-- Copy toast -->
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 3000;">
+    <div id="copyToast" class="toast toast-dark align-items-center" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="bi bi-clipboard-check me-1"></i> Store link copied
+        </div>
+        <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Withdraw Modal -->
+  <div class="modal fade" id="withdrawModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border-radius:18px;border:1px solid var(--cd-border);">
+        <div class="modal-header">
+          <h6 class="modal-title">
+            <i class="bi bi-cash-stack me-1 text-success"></i>
+            Request Withdrawal
+          </h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-info py-2 small mb-3">
+            Profit Balance: <strong id="wmWithdrawable">GHS {{ '%.2f'|format(withdrawable or 0) }}</strong>
+          </div>
+
+          <div class="row g-2">
+            <div class="col-12">
+              <label class="form-label small text-muted mb-1">Amount (GHS)</label>
+              <input type="number" class="form-control" id="wmAmount" min="1" step="0.01"
+                     placeholder="e.g. 50" style="border-radius:14px;">
+              <div class="help-mini mt-1" id="wmAmountHelp"></div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label small text-muted mb-1">Method</label>
+              <select class="form-select" id="wmMethod" style="border-radius:14px;">
+                <option value="momo">Mobile Money (MoMo)</option>
+                <option value="wallet">{{ BRAND_NAME }} Wallet</option>
+              </select>
+              <div class="help-mini mt-1" id="wmMethodHelp">
+                MoMo uses your payout settings.
+              </div>
+            </div>
+
+            <div class="col-12 d-none" id="wmMomoBox">
+              <div class="p-2 rounded-3" style="background:var(--cd-bg);border:1px dashed var(--cd-border);">
+                <div class="small fw-semibold mb-1"><i class="bi bi-phone me-1"></i>MoMo details</div>
+                <div class="small text-muted" id="wmMomoText">Loading…</div>
+                <div class="mt-2">
+                  <a class="btn-ghost btn-sm" href="{{ url_for('customer_store.customer_store_payout_page', slug=store.slug) }}">
+                    <i class="bi bi-gear me-1"></i> Update payout settings
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 d-none" id="wmWalletBox">
+              <div class="p-2 rounded-3" style="background:var(--cd-bg);border:1px dashed var(--cd-border);">
+                <div class="small fw-semibold mb-1"><i class="bi bi-wallet2 me-1"></i>{{ BRAND_NAME }} Wallet</div>
+                <div class="small text-muted">Admin will credit your wallet when the request is paid.</div>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <div class="alert alert-warning py-2 small mb-0 d-none" id="wmErr"></div>
+              <div class="alert alert-success py-2 small mb-0 d-none" id="wmOk"></div>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-light" data-bs-dismiss="modal" type="button" style="border-radius:999px;">
+            Cancel
+          </button>
+          <button class="btn btn-primary" id="wmSubmit" type="button" style="border-radius:999px;">
+            <span id="wmSubmitTxt"><i class="bi bi-send me-1"></i> Submit Request</span>
+            <span class="d-none" id="wmSubmitSpin">
+              <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+              Submitting…
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  {% if store and store.slug %}
+  <script>
+    function $(s, p){ return (p || document).querySelector(s); }
+
+    // -------------------------
+    // Share tools
+    // -------------------------
+    var shareStrip = $('#shareStrip');
+    var storeName = (shareStrip && shareStrip.dataset && shareStrip.dataset.storeName) ? shareStrip.dataset.storeName : '{{ (store and store.name) or "My Store" }}';
+    var storeUrl = '{{ store_scheme }}://{{ store_host }}/s/{{ store.slug }}';
+
+    var inputEl = document.getElementById('storeUrlInput');
+    if (inputEl) inputEl.value = storeUrl;
+
+    document.querySelectorAll('a[href$="/s/{{ store.slug }}"]').forEach(function(a){
+      try {
+        var u = new URL(a.getAttribute('href'), location.origin);
+        u.protocol = 'https:'; u.host = '{{ store_host }}';
+        a.setAttribute('href', u.toString());
+      } catch(e) {}
+    });
+
+    function withUTM(url){
+      try{
+        var u = new URL(url);
+        if(!u.searchParams.get('utm_source')){
+          u.searchParams.set('utm_source','share');
+          u.searchParams.set('utm_medium','whatsapp');
+          u.searchParams.set('utm_campaign','store');
+        }
+        return u.toString();
+      }catch(e){ return url; }
+    }
+
+    var wspText = encodeURIComponent(storeName + ' — shop here:\n' + withUTM(storeUrl));
+    var wspUrl  = 'https://wa.me/?text=' + wspText;
+
+    var shareSpinner = document.getElementById('shareSpinner');
+    function showShareSpinner(on){
+      if(!shareSpinner) return;
+      shareSpinner.classList.toggle('d-none', !on);
+    }
+
+    function copyStoreLink(){
+      if(!inputEl) return;
+      showShareSpinner(true);
+      inputEl.value = storeUrl;
+      inputEl.removeAttribute('readonly');
+      inputEl.select(); inputEl.setSelectionRange(0, 99999);
+      try {
+        if (document.execCommand) document.execCommand('copy');
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(inputEl.value);
+      } catch(e) {}
+      inputEl.setAttribute('readonly','');
+      var toastEl = document.getElementById('copyToast');
+      var toast = bootstrap.Toast.getOrCreateInstance(toastEl, { delay: 1400 });
+      toast.show();
+      setTimeout(function(){ showShareSpinner(false); }, 250);
+    }
+
+    function systemShare(){
+      var text = storeName + ' — shop here';
+      var url  = withUTM(storeUrl);
+      if(navigator.share){
+        navigator.share({ title: storeName, text: text, url: url }).catch(function(){});
+      } else {
+        location.href = 'https://wa.me/?text=' + encodeURIComponent(text + '\n' + url);
+      }
+    }
+
+    var btnCopy = document.getElementById('btnCopyLink');
+    var btnWsp  = document.getElementById('btnWspInline');
+    var btnSys  = document.getElementById('btnSystemShare');
+    if (btnCopy) btnCopy.addEventListener('click', copyStoreLink);
+    if (btnWsp)  btnWsp.addEventListener('click', function(){ location.href = wspUrl; });
+    if (btnSys)  btnSys.addEventListener('click', systemShare);
+
+    // -------------------------
+    // Withdrawals (paid)
+    // -------------------------
+    async function loadWithdrawals(){
+      var body = document.getElementById('wRows');
+      if(!body) return;
+      try{
+        var r = await fetch("{{ url_for('customer_store.api_customer_store_withdrawals', slug=store.slug) }}?limit=5");
+        var j = await r.json();
+        if (!j.success || !j.items || !j.items.length){
+          body.innerHTML = '<tr><td colspan="5" class="text-muted small">No withdrawals yet.</td></tr>';
+          return;
+        }
+        body.innerHTML = j.items.map(function(it){
+          return (
+            '<tr>' +
+              '<td>' + (it.reference || '-') + '</td>' +
+              '<td class="text-end">' + (Number(it.amount||0).toFixed(2)) + '</td>' +
+              '<td>' + (it.created_at || '-') + '</td>' +
+              '<td>' + (it.verified_at || '-') + '</td>' +
+              '<td class="text-muted small">' + (it.note || '') + '</td>' +
+            '</tr>'
+          );
+        }).join('');
+      }catch(e){
+        body.innerHTML = '<tr><td colspan="5" class="text-danger small">Failed to load withdrawals.</td></tr>';
+      }
+    }
+    loadWithdrawals();
+
+    // -------------------------
+    // Withdrawal Requests list
+    // -------------------------
+    var reqRows = document.getElementById('reqRows');
+
+    function pillForReqStatus(st){
+      var s = String(st||'').toLowerCase();
+      if(s==='pending') return '<span class="status-pill status-pending"><i class="bi bi-hourglass-split"></i> pending</span>';
+      if(s==='paid') return '<span class="status-pill status-paid"><i class="bi bi-check2-circle"></i> paid</span>';
+      if(s==='rejected') return '<span class="status-pill status-rejected"><i class="bi bi-x-circle"></i> rejected</span>';
+      return '<span class="status-pill status-other">' + (s||'-') + '</span>';
+    }
+    function methodLabel(m){
+      var s = String(m||'').toLowerCase();
+      if(s==='momo') return '<span class="badge-soft"><i class="bi bi-phone"></i>MoMo</span>';
+      if(s==='wallet') return '<span class="badge-soft"><i class="bi bi-wallet2"></i>Wallet</span>';
+      return '<span class="badge-soft">' + (s||'-') + '</span>';
+    }
+
+    async function loadWithdrawRequests(){
+      if(!reqRows) return;
+      reqRows.innerHTML =
+        '<tr><td colspan="6">' +
+          '<div class="spinner-inline">' +
+            '<div class="spinner-border spinner-border-sm text-info" role="status">' +
+              '<span class="visually-hidden">Loading…</span>' +
+            '</div>' +
+            'Loading withdrawal requests…' +
+          '</div>' +
+        '</td></tr>';
+
+      try{
+        var r = await fetch("{{ url_for('customer_store.api_customer_store_withdraw_requests', slug=store.slug) }}?limit=10");
+        var j = await r.json();
+        if(!j.success || !j.items || !j.items.length){
+          reqRows.innerHTML = '<tr><td colspan="6" class="text-muted small">No withdrawal requests yet.</td></tr>';
+          return;
+        }
+        reqRows.innerHTML = j.items.map(function(it){
+          return (
+            '<tr>' +
+              '<td>' + (it.reference || '-') + '</td>' +
+              '<td>' + methodLabel(it.method) + '</td>' +
+              '<td class="text-end">' + (Number(it.amount||0).toFixed(2)) + '</td>' +
+              '<td>' + pillForReqStatus(it.status) + '</td>' +
+              '<td>' + (it.created_at || '-') + '</td>' +
+              '<td>' + (it.updated_at || '-') + '</td>' +
+            '</tr>'
+          );
+        }).join('');
+      }catch(e){
+        reqRows.innerHTML = '<tr><td colspan="6" class="text-danger small">Failed to load requests.</td></tr>';
+      }
+    }
+    loadWithdrawRequests();
+    var btnRefreshReq = document.getElementById('btnRefreshRequests');
+    if (btnRefreshReq) btnRefreshReq.addEventListener('click', loadWithdrawRequests);
+
+    // -------------------------
+    // Auto Withdrawal Settings
+    // -------------------------
+    var autoWd = {
+      enabled: document.getElementById('autoWdEnabled'),
+      amount: document.getElementById('autoWdAmount'),
+      method: document.getElementById('autoWdMethod'),
+      save: document.getElementById('autoWdSave'),
+      hint: document.getElementById('autoWdHint')
+    };
+    var autoWdTimer = null;
+
+    function setAutoHint(msg, isErr){
+      if(!autoWd.hint) return;
+      autoWd.hint.textContent = msg || '';
+      autoWd.hint.classList.toggle('text-danger', !!isErr);
+    }
+
+    function scheduleAutoWithdraw(enabled){
+      if(autoWdTimer){
+        clearInterval(autoWdTimer);
+        autoWdTimer = null;
+      }
+      if(!enabled) return;
+      autoWdTimer = setInterval(async function(){
+        try{
+          var r = await fetch("{{ url_for('customer_store.api_customer_store_auto_withdraw_run', slug=store.slug) }}", {
+            method:'POST',
+            headers:{'Content-Type':'application/json'}
+          });
+          var j = await r.json();
+          if(j && j.auto_request && j.auto_request.reference){
+            setAutoHint('Auto request submitted: ' + j.auto_request.reference, false);
+            await loadWithdrawRequests();
+          }
+        }catch(e){}
+      }, 60000);
+    }
+
+    async function loadAutoWithdraw(){
+      try{
+        var r = await fetch("{{ url_for('customer_store.api_customer_store_auto_withdraw', slug=store.slug) }}");
+        var j = await r.json();
+        if(!j.success || !j.settings){
+          setAutoHint('Failed to load auto-withdraw settings.', true);
+          return;
+        }
+        if(autoWd.enabled) autoWd.enabled.checked = !!j.settings.enabled;
+        if(autoWd.amount) autoWd.amount.value = j.settings.amount ? Number(j.settings.amount).toFixed(2) : '';
+        if(autoWd.method) autoWd.method.value = j.settings.method || 'momo';
+        setAutoHint(j.settings.enabled ? 'Auto-withdraw is enabled.' : 'Auto-withdraw is off.', false);
+        scheduleAutoWithdraw(!!j.settings.enabled);
+      }catch(e){
+        setAutoHint('Failed to load auto-withdraw settings.', true);
+      }
+    }
+    loadAutoWithdraw();
+
+    if(autoWd.save){
+      autoWd.save.addEventListener('click', async function(){
+        var enabled = !!(autoWd.enabled && autoWd.enabled.checked);
+        var amount = Number((autoWd.amount && autoWd.amount.value) || 0);
+        var method = String((autoWd.method && autoWd.method.value) || 'momo').toLowerCase();
+
+        if(enabled && amount < MIN_WITHDRAW){
+          setAutoHint('Minimum auto-withdraw amount is GHS ' + MIN_WITHDRAW.toFixed(2) + '.', true);
+          return;
+        }
+
+        setAutoHint('Saving...', false);
+        try{
+          var r = await fetch("{{ url_for('customer_store.api_customer_store_auto_withdraw', slug=store.slug) }}", {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ enabled: enabled, amount: amount, method: method })
+          });
+          var j = await r.json();
+          if(!r.ok || !j.success){
+            setAutoHint((j && j.message) ? j.message : 'Failed to save settings.', true);
+            return;
+          }
+          setAutoHint(j.settings && j.settings.enabled ? 'Auto-withdraw is enabled.' : 'Auto-withdraw is off.', false);
+          scheduleAutoWithdraw(!!(j.settings && j.settings.enabled));
+          if(j.auto_request && j.auto_request.reference){
+            setAutoHint('Auto request submitted: ' + j.auto_request.reference, false);
+            await loadWithdrawRequests();
+          }
+        }catch(e){
+          setAutoHint('Failed to save settings.', true);
+        }
+      });
+    }
+
+    // -------------------------
+    // Request Withdraw Modal
+    // -------------------------
+    var withdrawableNow = parseFloat("{{ '%.2f'|format(withdrawable or 0) }}") || 0;
+    var MIN_WITHDRAW = 20;
+
+    var wm = {
+      modalEl: document.getElementById('withdrawModal'),
+      amount: document.getElementById('wmAmount'),
+      method: document.getElementById('wmMethod'),
+      momoBox: document.getElementById('wmMomoBox'),
+      walletBox: document.getElementById('wmWalletBox'),
+      momoText: document.getElementById('wmMomoText'),
+      err: document.getElementById('wmErr'),
+      ok: document.getElementById('wmOk'),
+      submit: document.getElementById('wmSubmit'),
+      submitTxt: document.getElementById('wmSubmitTxt'),
+      submitSpin: document.getElementById('wmSubmitSpin'),
+      amountHelp: document.getElementById('wmAmountHelp'),
+      methodHelp: document.getElementById('wmMethodHelp')
+    };
+
+    var withdrawModal = wm.modalEl ? bootstrap.Modal.getOrCreateInstance(wm.modalEl) : null;
+
+    function wmSetState(opts){
+      opts = opts || {};
+      var loading = !!opts.loading;
+      var err = opts.err || '';
+      var ok  = opts.ok  || '';
+
+      if(wm.submit){
+        wm.submit.disabled = loading;
+        if (wm.submitTxt)  wm.submitTxt.classList.toggle('d-none', loading);
+        if (wm.submitSpin) wm.submitSpin.classList.toggle('d-none', !loading);
+      }
+      if(wm.err){
+        wm.err.textContent = err;
+        wm.err.classList.toggle('d-none', !err);
+      }
+      if(wm.ok){
+        wm.ok.textContent = ok;
+        wm.ok.classList.toggle('d-none', !ok);
+      }
+    }
+
+    async function loadMomoSnapshot(){
+      if(!wm.momoText) return;
+      wm.momoText.textContent = 'Loading…';
+      try{
+        var r = await fetch("{{ url_for('customer_store.api_customer_store_payout_snapshot', slug=store.slug) }}");
+        var j = await r.json();
+        if(j.success && j.payout && (j.payout.msisdn || j.payout.recipient_name)){
+          var p = j.payout;
+          wm.momoText.innerHTML =
+            '<div><strong>' + (p.recipient_name || '-') + '</strong></div>' +
+            '<div>' + (p.network || '-') + ' · ' + (p.msisdn || '-') + '</div>';
+        } else {
+          wm.momoText.innerHTML = '<span class="text-danger">No payout settings found. Please set your MoMo details.</span>';
+        }
+      }catch(e){
+        wm.momoText.innerHTML = '<span class="text-danger">Failed to load payout details.</span>';
+      }
+    }
+
+    function wmToggleMethod(){
+      var m = String((wm.method && wm.method.value) || 'momo').toLowerCase();
+      if (wm.momoBox) wm.momoBox.classList.toggle('d-none', m !== 'momo');
+      if (wm.walletBox) wm.walletBox.classList.toggle('d-none', m !== 'wallet');
+
+      if(wm.methodHelp){
+        wm.methodHelp.textContent = (m === 'momo')
+          ? 'MoMo uses your payout settings.'
+          : 'Wallet credits will reflect when admin pays the request.';
+      }
+      if(m === 'momo') loadMomoSnapshot();
+    }
+
+    function openWithdrawModal(){
+      if(!withdrawModal) return;
+      wmSetState({loading:false, err:'', ok:''});
+
+      if(wm.amount){
+        var d = Math.max(0, withdrawableNow);
+        wm.amount.value = d > 0 ? d.toFixed(2) : '';
+      }
+      if(wm.amountHelp){
+        if(withdrawableNow < MIN_WITHDRAW){
+          wm.amountHelp.textContent = 'Minimum profit balance is GHS ' + MIN_WITHDRAW.toFixed(2) + ' to request a withdrawal.';
+        }else{
+          wm.amountHelp.textContent = 'Min: GHS ' + MIN_WITHDRAW.toFixed(2) + ' • Max: GHS ' + withdrawableNow.toFixed(2);
+        }
+      }
+
+      wmToggleMethod();
+      withdrawModal.show();
+    }
+
+    var btnOpen1 = document.getElementById('btnOpenWithdraw');
+    var btnOpen2 = document.getElementById('btnOpenWithdraw2');
+    function updateWithdrawButtons(){
+      var disabled = withdrawableNow < MIN_WITHDRAW;
+      [btnOpen1, btnOpen2].forEach(function(btn){
+        if(!btn) return;
+        btn.disabled = disabled;
+        if(disabled){
+          btn.setAttribute('title', 'Profit balance must be at least GHS ' + MIN_WITHDRAW.toFixed(2));
+        }else{
+          btn.removeAttribute('title');
+        }
+      });
+    }
+    if (btnOpen1) btnOpen1.addEventListener('click', openWithdrawModal);
+    if (btnOpen2) btnOpen2.addEventListener('click', openWithdrawModal);
+    if (wm.method) wm.method.addEventListener('change', wmToggleMethod);
+    updateWithdrawButtons();
+
+    if (wm.submit){
+      wm.submit.addEventListener('click', async function(){
+        var amt = Number((wm.amount && wm.amount.value) || 0);
+        var method = String((wm.method && wm.method.value) || 'momo').toLowerCase();
+
+        if(!amt || amt <= 0){
+          wmSetState({err:'Enter a valid amount.'});
+          return;
+        }
+        if(withdrawableNow < MIN_WITHDRAW){
+          wmSetState({err:'Profit balance must be at least GHS ' + MIN_WITHDRAW.toFixed(2) + ' to request a withdrawal.'});
+          return;
+        }
+        if(amt < MIN_WITHDRAW){
+          wmSetState({err:'Minimum withdrawal amount is GHS ' + MIN_WITHDRAW.toFixed(2) + '.'});
+          return;
+        }
+        if(amt > withdrawableNow + 0.0001){
+          wmSetState({err:'Amount cannot exceed profit balance (GHS ' + withdrawableNow.toFixed(2) + ').'});
+          return;
+        }
+
+        wmSetState({loading:true, err:'', ok:''});
+        try{
+          var r = await fetch("{{ url_for('customer_store.api_customer_store_request_withdraw', slug=store.slug) }}",{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ amount: amt, method: method })
+          });
+          var j = await r.json();
+          if(!r.ok || !j.success){
+            wmSetState({loading:false, err: (j && j.message) ? j.message : 'Failed to submit request.'});
+            return;
+          }
+
+          wmSetState({loading:false, ok:'Withdrawal request submitted successfully.'});
+          await loadWithdrawRequests();
+
+          setTimeout(function(){
+            try{ withdrawModal.hide(); }catch(e){}
+          }, 900);
+        }catch(e){
+          wmSetState({loading:false, err:'Network error. Try again.'});
+        }
+      });
+    }
+
+    // -------------------------
+    // Orders Search (default last 10)
+    // -------------------------
+    var orderRows = document.getElementById('orderRows');
+    var orderSearch = document.getElementById('orderSearch');
+    var orderHint = document.getElementById('orderHint');
+    var btnClear = document.getElementById('btnClearOrderSearch');
+
+    function pillForOrderStatus(st){
+      var s = String(st||'').toLowerCase();
+      if(s==='processing') return '<span class="status-pill status-processing">processing</span>';
+      if(s==='completed') return '<span class="status-pill status-completed">completed</span>';
+      if(s==='failed') return '<span class="status-pill status-failed">failed</span>';
+      return '<span class="status-pill status-other">' + (s||'-') + '</span>';
+    }
+
+    function phoneCellHtml(o){
+      var primary = o.phone_primary || '-';
+      var count = Number(o.phone_count || 0);
+      var summary = o.phone_summary || '';
+      var extra = (count > 1) ? ('<span class="text-muted small ms-1">+' + (count-1) + '</span>') : '';
+      return (
+        '<td class="phone-cell" title="' + (summary || '') + '">' +
+          '<span class="badge-soft"><i class="bi bi-telephone"></i>' + primary + '</span>' +
+          extra +
+        '</td>'
+      );
+    }
+
+    function orderRowHtml(o){
+      var created = o.created_at || '-';
+      return (
+        '<tr>' +
+          '<td class="text-break"><code>' + (o.order_id || '-') + '</code></td>' +
+          phoneCellHtml(o) +
+          '<td>' + pillForOrderStatus(o.status) + '</td>' +
+          '<td class="text-end">' + Number(o.items_count||0) + '</td>' +
+          '<td class="text-end">' + Number(o.charged_amount||0).toFixed(2) + '</td>' +
+          '<td class="text-end">' + Number(o.profit_amount_total||0).toFixed(2) + '</td>' +
+          '<td class="text-end"><strong>' + Number(o.total_amount||0).toFixed(2) + '</strong></td>' +
+          '<td>' + created + '</td>' +
+        '</tr>'
+      );
+    }
+
+    var searchTimer = null;
+    async function runOrderSearch(){
+      if(!orderRows) return;
+      var q = (orderSearch && orderSearch.value ? orderSearch.value : '').trim();
+
+      var url = new URL("{{ url_for('customer_store.api_customer_store_orders_search', slug=store.slug) }}", window.location.origin);
+      if(q) url.searchParams.set('q', q);
+      url.searchParams.set('limit', '10');
+
+      orderRows.innerHTML =
+        '<tr><td colspan="8">' +
+          '<div class="spinner-inline">' +
+            '<div class="spinner-border spinner-border-sm text-info" role="status">' +
+              '<span class="visually-hidden">Loading…</span>' +
+            '</div>' +
+            'Loading orders…' +
+          '</div>' +
+        '</td></tr>';
+
+      try{
+        var r = await fetch(url.toString());
+        var j = await r.json();
+
+        if(!j.success){
+          orderRows.innerHTML = '<tr><td colspan="8" class="text-danger small">' + (j.message || 'Failed to load orders.') + '</td></tr>';
+          return;
+        }
+
+        var items = j.items || [];
+        if(orderHint){
+          if(q){
+            orderHint.innerHTML = '<i class="bi bi-search me-1"></i> Search results for <strong>' + q + '</strong> (showing up to 10).';
+          }else{
+            orderHint.innerHTML = '<i class="bi bi-clock-history me-1"></i> Showing latest 10 orders.';
+          }
+        }
+
+        if(!items.length){
+          orderRows.innerHTML = '<tr><td colspan="8" class="text-muted small">No orders found.</td></tr>';
+          return;
+        }
+        orderRows.innerHTML = items.map(orderRowHtml).join('');
+      }catch(e){
+        orderRows.innerHTML = '<tr><td colspan="8" class="text-danger small">Failed to load orders.</td></tr>';
+      }
+    }
+
+    if(orderSearch){
+      orderSearch.addEventListener('input', function(){
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(runOrderSearch, 280);
+      });
+    }
+
+    if(btnClear){
+      btnClear.addEventListener('click', function(){
+        if(orderSearch) orderSearch.value = '';
+        runOrderSearch();
+      });
+    }
+
+    // Optional: uncomment to always load via API:
+    // runOrderSearch();
+  </script>
+  {% endif %}
+</body>
+</html>
