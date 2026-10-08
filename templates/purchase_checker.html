@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Purchase Checker</title>
+    <link rel="icon" type="image/png" href="{{ BRAND_LOGO_URL }}">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        body {
+            background-color: var(--cd-bg);
+        }
+        .page-title {
+            font-weight: 700;
+            color: var(--cd-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .checker-card {
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .checker-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgb(var(--cd-deep-rgb) / 0.08);
+        }
+        .price-tag {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--cd-success);
+        }
+        .empty-message {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgb(var(--cd-deep-rgb) / 0.05);
+        }
+        @media (max-width: 576px) {
+            .page-title {
+                font-size: 1.25rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container py-4">
+  {% include 'customer_sidebar.html' %}
+
+    <!-- Page Title -->
+    <h2 class="page-title mb-4">🎫 Purchase Result Checker</h2>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Select Type -->
+    <div class="mb-3">
+        <label class="form-label fw-semibold">Select Checker Type:</label>
+        <select class="form-select" onchange="location = '?type=' + this.value;">
+            <option value="">-- Select --</option>
+            <option value="wassce" {% if selected_type == 'wassce' %}selected{% endif %}>WASSCE</option>
+            <option value="bece" {% if selected_type == 'bece' %}selected{% endif %}>BECE</option>
+        </select>
+    </div>
+
+    <!-- Balance -->
+    <div class="alert alert-info shadow-sm">💰 Your balance: <strong>{{ balance }} GHS</strong></div>
+
+    <!-- Available Checker -->
+    {% if checkers %}
+    <div class="row justify-content-center">
+        {% for c in checkers %}
+        <div class="col-md-6 col-lg-4 col-sm-10 mb-4">
+            <div class="card checker-card shadow-sm h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div>
+                        <p class="price-tag">Price: {{ "%.2f"|format(c.amount) }} GHS</p>
+                    </div>
+                    <form method="POST" class="mt-3">
+                        <input type="hidden" name="checker_id" value="{{ c._id }}">
+                        <button type="submit" class="btn btn-primary w-100">Buy Now</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% elif selected_type %}
+        <div class="empty-message">
+            <p class="text-muted mb-0">No {{ selected_type.upper() }} checkers available right now.</p>
+        </div>
+    {% endif %}
+
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

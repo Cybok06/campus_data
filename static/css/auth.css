@@ -1,0 +1,181 @@
+/* CAMPUS DATA Auth Pages */
+:root {
+  --auth-bg: var(--cd-bg);
+  --auth-card: var(--cd-card);
+  --auth-border: var(--cd-border);
+  --auth-text: var(--cd-text);
+  --auth-muted: var(--cd-muted);
+  --auth-primary: var(--cd-primary);
+  --auth-accent: var(--cd-accent);
+  --auth-deep: var(--cd-deep);
+  --auth-radius: 20px;
+  --auth-shadow: 0 18px 45px rgb(var(--cd-deep-rgb) / 0.10);
+}
+
+.auth-page{
+  min-height:100dvh;
+  display:grid;
+  place-items:center;
+  padding:clamp(20px,4vw,36px);
+  background:
+    radial-gradient(420px 280px at 12% 8%, rgb(var(--cd-primary-rgb) / 0.08), transparent 60%),
+    radial-gradient(520px 320px at 88% 6%, rgb(var(--cd-accent-rgb) / 0.10), transparent 60%),
+    var(--auth-bg);
+}
+
+.auth-shell{
+  width:100%;
+  display:flex;
+  justify-content:center;
+}
+
+.auth-card{
+  width:min(96vw, 520px);
+  background:var(--auth-card);
+  border:1px solid var(--auth-border);
+  border-radius:var(--auth-radius);
+  box-shadow:var(--auth-shadow);
+  overflow:hidden;
+}
+
+.auth-hero{
+  position:relative;
+  padding:28px 28px 56px;
+  color:#fff;
+  background:var(--cd-grad-primary);
+  text-align:left;
+}
+
+.auth-hero::after{
+  content:"";
+  position:absolute;
+  left:0; right:0; bottom:-1px;
+  height:84px;
+  background:var(--auth-card);
+  border-top-left-radius: 50% 70px;
+  border-top-right-radius: 50% 70px;
+}
+
+.auth-brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  font-weight:700;
+  letter-spacing:.2px;
+}
+
+.auth-brand img{
+  width:44px;
+  height:44px;
+  border-radius:12px;
+  object-fit:cover;
+  background:#fff;
+  border:2px solid rgb(var(--cd-white-rgb) / 0.7);
+}
+
+.auth-hero h1{
+  margin:14px 0 6px;
+  font-size:1.35rem;
+  font-weight:800;
+}
+
+.auth-hero p{
+  margin:0;
+  color:rgb(var(--cd-white-rgb) / 0.85);
+  font-size:.95rem;
+}
+
+.auth-dots{
+  position:absolute;
+  width:140px;
+  height:90px;
+  opacity:0.35;
+  background-image: radial-gradient(rgb(var(--cd-white-rgb) / 0.7) 1.2px, transparent 1.2px);
+  background-size: 10px 10px;
+}
+
+.auth-dots--left{ top:18px; left:16px; }
+.auth-dots--right{ top:22px; right:16px; }
+
+.auth-body{
+  padding:10px 28px 28px;
+}
+
+.auth-body h2{
+  font-size:1.1rem;
+  font-weight:700;
+  color:var(--auth-text);
+  margin-bottom:14px;
+}
+
+.auth-muted{ color:var(--auth-muted); }
+
+.auth-card .form-label{ color:var(--auth-text); font-weight:600; }
+
+.auth-card .form-control,
+.auth-card .form-select,
+.auth-card .input-group-text{
+  border-radius:14px;
+  border-color:var(--auth-border);
+}
+
+.auth-card .form-control,
+.auth-card .form-select{
+  background:#fff;
+  color:var(--auth-text);
+}
+
+.auth-card .form-control:focus,
+.auth-card .form-select:focus{
+  border-color:var(--auth-primary);
+  box-shadow:0 0 0 .2rem rgb(var(--cd-primary-rgb) / 0.22);
+}
+
+.auth-card .input-group-text{
+  background:#fff;
+  color:var(--auth-muted);
+}
+
+.auth-card .btn-primary,
+.auth-card .btn-outline-light,
+.auth-card .btn-outline-primary{
+  border-radius:999px;
+  height:48px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.auth-card .btn-primary{
+  background:var(--auth-primary);
+  border-color:var(--auth-primary);
+}
+
+.auth-card .btn-primary:hover{ filter:brightness(.96); }
+
+.auth-card .btn-outline-light{
+  color:var(--auth-primary);
+  border-color:var(--auth-border);
+  background:#fff;
+}
+
+.auth-card .btn-outline-light:hover{
+  border-color:var(--auth-primary);
+  color:var(--auth-primary);
+  background:rgb(var(--cd-primary-rgb) / 0.06);
+}
+
+.auth-card .flash-wrap .alert{
+  background:rgb(var(--cd-primary-rgb) / 0.08);
+  border:1px solid rgb(var(--cd-primary-rgb) / 0.18);
+  color:var(--auth-text);
+}
+
+@media (max-width: 480px){
+  .auth-hero{ padding:22px 20px 52px; }
+  .auth-body{ padding:8px 20px 22px; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  *{ animation:none !important; transition:none !important; }
+}

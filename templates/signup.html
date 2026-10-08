@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sign Up • {{ BRAND_NAME }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" href="{{ BRAND_LOGO_URL }}">
+
+  <!-- Bootstrap & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <link rel="stylesheet" href="/static/css/auth.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    .auth-card .caps-hint{ display:none; color:var(--cd-warning); }
+    .auth-card .caps-hint.show{ display:inline-flex; align-items:center; gap:.35rem; }
+    .auth-card .tiny-indicator{ font-size:.85rem; }
+    .auth-card .modal-content{ background:var(--cd-card); color:var(--cd-text); border:1px solid var(--cd-border); border-radius:14px; }
+    .auth-card .modal-header, .auth-card .modal-footer{ border-color:var(--cd-border); }
+    .auth-card .link-legal{ color:var(--cd-primary); text-decoration:underline; }
+  </style>
+</head>
+<body>
+  <main class="auth-page">
+    <section class="auth-shell">
+      <div class="auth-card auth-card--split">
+        <header class="auth-hero">
+          <div class="auth-brand">
+            <img src="{{ BRAND_LOGO_URL }}" alt="{{ BRAND_NAME }} Logo">
+            <span>{{ BRAND_NAME }}</span>
+          </div>
+          <h1>Create Account</h1>
+          <p>Start your campus data wallet in minutes.</p>
+          <div class="auth-dots auth-dots--left"></div>
+          <div class="auth-dots auth-dots--right"></div>
+        </header>
+        <div class="auth-body">
+          <h2>Sign Up</h2>
+
+          <!-- Flash messages -->
+          <div class="flash-wrap mb-3">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="alert alert-{{ category }} mb-2 py-2 px-3" role="alert">{{ message }}</div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+          </div>
+        <!-- We keep novalidate to show our custom messages -->
+        <form method="POST" action="/signup" id="signupForm" novalidate>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label" for="first_name">First Name</label>
+              <input id="first_name" name="first_name" type="text" class="form-control"
+                     placeholder="First Name" required minlength="2" autocomplete="given-name"
+                     pattern=".*\S.*" />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="last_name">Last Name</label>
+              <input id="last_name" name="last_name" type="text" class="form-control"
+                     placeholder="Last Name" required minlength="2" autocomplete="family-name"
+                     pattern=".*\S.*" />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="username">Username</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                <input id="username" name="username" type="text" class="form-control"
+                       placeholder="Username" required autocomplete="username" minlength="3"
+                       pattern="^[a-zA-Z0-9._-]{3,}$" />
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="email">Email</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                <input id="email" name="email" type="email" class="form-control"
+                       placeholder="you@example.com" required autocomplete="email" />
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="phone">Phone</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                <input id="phone" name="phone" type="tel" class="form-control"
+                       placeholder="e.g., 0551234567" required autocomplete="tel"
+                       pattern="^0\d{9}$" />
+              </div>
+              <div class="form-text">Use a valid Ghana number (starts with 0, 10 digits).</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="whatsapp">WhatsApp</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-whatsapp"></i></span>
+                <input id="whatsapp" name="whatsapp" type="tel" class="form-control"
+                       placeholder="WhatsApp Number" required autocomplete="tel"
+                       pattern="^0\d{9}$" />
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="business_name">Business Name</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-briefcase"></i></span>
+                <input id="business_name" name="business_name" type="text" class="form-control"
+                       placeholder="Business Name" required minlength="2" pattern=".*\S.*" />
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="referral">Referral Code</label>
+              <div class="input-group has-validation">
+                <span class="input-group-text"><i class="bi bi-gift"></i></span>
+                <input id="referral" name="referral" type="text" class="form-control"
+                       placeholder="Referral Code" required pattern=".*\S.*"
+                       value="{{ referral_code }}" />
+                <span class="input-group-text border-start-0 bg-transparent" id="refState" aria-live="polite">
+                  <span class="tiny-indicator text-warning" id="refMsg"></span>
+                </span>
+              </div>
+              <div class="form-text" id="refHelp">Enter a valid referral code to continue.</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label d-flex justify-content-between align-items-center" for="password">
+                <span>Password</span>
+                <small id="capsHint" class="caps-hint"><i class="bi bi-exclamation-triangle"></i> Caps Lock is ON</small>
+              </label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                <input id="password" name="password" type="password" class="form-control"
+                       placeholder="Create a strong password" required autocomplete="new-password"
+                       minlength="8" />
+                <button class="btn btn-outline-light" type="button" id="togglePw"><i class="bi bi-eye"></i></button>
+              </div>
+              <div class="strength mt-2"><div class="strength-bar" id="strengthBar"></div></div>
+              <div class="form-text">At least 8 characters. Mix letters, numbers & symbols.</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="confirm_password">Confirm Password</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-shield-check"></i></span>
+                <input id="confirm_password" name="confirm_password" type="password" class="form-control"
+                       placeholder="Repeat password" required autocomplete="new-password" minlength="8" />
+                <button class="btn btn-outline-light" type="button" id="togglePw2"><i class="bi bi-eye"></i></button>
+              </div>
+              <div class="form-text" id="matchText"></div>
+            </div>
+
+            <div class="col-12">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="1" id="terms" required>
+                <label class="form-check-label small-muted" for="terms">
+                  I agree to the
+                  <a class="link-legal" href="#" data-bs-toggle="modal" data-bs-target="#tosModal">Terms of Service</a>
+                  &amp;
+                  <a class="link-legal" href="#" data-bs-toggle="modal" data-bs-target="#privacyModal">Privacy Policy</a>.
+                </label>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <button class="btn btn-primary w-100" type="submit" id="submitBtn" disabled>
+                <span class="btn-text">Create Account</span>
+                <span class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
+              </button>
+            </div>
+
+            <div class="col-12">
+              <a href="/login" class="btn btn-outline-light w-100">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Already have an account? Log in
+              </a>
+            </div>
+          </div>
+        </form>
+
+        <p class="text-center mt-3 small-muted mb-0">Need help? Chat us on WhatsApp.</p>
+      </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ====== LEGAL MODALS ====== -->
+
+  <!-- Terms of Service Modal -->
+  <div class="modal fade" id="tosModal" tabindex="-1" aria-labelledby="tosModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="tosModalLabel">Terms of Service</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <ol>
+            <li>By placing an order with our website, you acknowledge that you have read and agree to these Terms of Service.</li>
+            <li>We reserve the right to change these Terms of Service without notice. Please regularly check this page for updates.</li>
+            <li>You agree to use our website in compliance with the qualifications and agreements outlined in sections 7 and 8 of these Terms of Service.</li>
+            <li>Our rates are subject to change at any time in accordance with our Telcos Policy or Supplier Agreement. We will notify you of any rate changes through our website or other means.</li>
+            <li>We strive to deliver services promptly, but delivery times are estimates only and not guaranteed. Estimated delivery times are 0–24 hours. After 24 hours, you may be eligible for a refund, excluding cases of network difficulties.</li>
+            <li>Refunds will not be issued for orders that do not meet our qualification requirements.</li>
+            <li>To avoid issues, please:
+              <ol type="i">
+                <li>Place orders for services in the correct category (e.g., MTN in the MTN column, not in Airtel/Tigo column, and vice versa).</li>
+                <li>Ensure the phone number is correct and complete.</li>
+              </ol>
+            </li>
+            <li>Meet the 3 core qualifications for Afa minutes orders as outlined on our WhatsApp page before placing else refund for unqualified orders will be done on merits.</li>
+          </ol>
+          <p class="mb-0"><em>Best Regards,<br/>Team {{ BRAND_NAME }}.</em></p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-light" data-bs-dismiss="modal">Close</button>
+          <button class="btn btn-primary" data-bs-dismiss="modal">I Agree</button>
+        </div>
+        </div>
+      </div>
+  </div>
+
+  <!-- Privacy Policy Modal -->
+  <div class="modal fade" id="privacyModal" tabindex="-1" aria-labelledby="privacyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="privacyModalLabel">Privacy Policy</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Welcome to our website. This Privacy Policy describes how we collect, use, disclose, and protect your personal information. By using our services, you agree to the terms outlined in this policy.</p>
+
+          <h6>Information We Collect</h6>
+          <p><strong>Personal Information:</strong> We may collect personal information, such as your name, email address, and payment details, when you use our services.</p>
+          <p><strong>Usage Data:</strong> We automatically collect information about how you interact with our website and services, including your IP address, browser type, and pages visited.</p>
+
+          <h6>How We Use Your Information</h6>
+          <p><strong>Service Delivery:</strong> We use your personal information to deliver the services you've requested, including processing orders and providing customer support.</p>
+          <p><strong>Communications:</strong> We may contact you with important service-related announcements, newsletters, and promotional offers based on your preferences.</p>
+
+          <h6>Data Security</h6>
+          <p>We implement industry-standard security measures to protect your personal information from unauthorized access, disclosure, alteration, and destruction.</p>
+
+          <h6>Information Sharing</h6>
+          <p>We do not sell, trade, or otherwise transfer your personal information to third parties without your consent, except as required by law.</p>
+
+          <h6>Cookies and Tracking Technologies</h6>
+          <p>We use cookies and similar tracking technologies to enhance your experience, gather usage information, and improve our services.</p>
+
+          <h6>Updates</h6>
+          <p>We reserve the right to update this Privacy Policy at any time. We'll notify you of any significant changes through the contact information you provide.</p>
+
+          <h6>Contact Us</h6>
+          <p>If you have any questions or concerns about this Privacy Policy, please contact us at our panel support.</p>
+
+          <p class="mb-0"><em>Team {{ BRAND_NAME }}.</em></p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-light" data-bs-dismiss="modal">Close</button>
+          <a href="/signup" class="btn btn-primary" data-bs-dismiss="modal">Continue Sign Up</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    (function(){
+      const form = document.getElementById('signupForm');
+      const btn = document.getElementById('submitBtn');
+      const spinner = btn.querySelector('.spinner-border');
+      const btnText = btn.querySelector('.btn-text');
+
+      const fields = [
+        'first_name','last_name','username','email','phone','whatsapp',
+        'business_name','referral','password','confirm_password'
+      ].map(id => document.getElementById(id));
+
+      const pw = document.getElementById('password');
+      const pw2 = document.getElementById('confirm_password');
+      const togglePw = document.getElementById('togglePw');
+      const togglePw2 = document.getElementById('togglePw2');
+      const strengthBar = document.getElementById('strengthBar');
+      const capsHint = document.getElementById('capsHint');
+      const matchText = document.getElementById('matchText');
+
+      // Referral live validation bits
+      const referralInput = document.getElementById('referral');
+      const refMsg = document.getElementById('refMsg');
+      const refHelp = document.getElementById('refHelp');
+      let refValid = false;
+      let refTimer = null;
+      const setBtnState = () => { btn.disabled = !refValid; };
+
+      function showRefStatus(state){
+        // state: 'idle' | 'checking' | 'valid' | 'invalid'
+        referralInput.classList.remove('is-valid','is-invalid');
+        refMsg.classList.remove('text-warning','text-success','text-danger');
+        if (state === 'checking'){
+          refMsg.textContent = 'Checking…';
+          refMsg.classList.add('text-warning');
+        } else if (state === 'valid'){
+          referralInput.classList.add('is-valid');
+          refMsg.textContent = 'Valid ✓';
+          refMsg.classList.add('text-success');
+        } else if (state === 'invalid'){
+          referralInput.classList.add('is-invalid');
+          refMsg.textContent = 'Invalid code';
+          refMsg.classList.add('text-danger');
+        } else {
+          refMsg.textContent = '';
+        }
+      }
+
+      async function validateReferral(code){
+        const clean = (code || '').trim().toUpperCase();
+        if (!clean){ refValid = false; showRefStatus('idle'); setBtnState(); return; }
+        showRefStatus('checking');
+        try{
+          const r = await fetch(`/signup/api/referral/validate?code=${encodeURIComponent(clean)}`, {cache:'no-store'});
+          const data = await r.json();
+          refValid = !!data.ok;
+          showRefStatus(refValid ? 'valid' : 'invalid');
+        }catch(e){
+          refValid = false;
+          showRefStatus('invalid');
+        }
+        setBtnState();
+      }
+
+      referralInput.addEventListener('input', () => {
+        if (refTimer) clearTimeout(refTimer);
+        refTimer = setTimeout(() => validateReferral(referralInput.value), 350); // debounce
+      });
+
+      // If prefilled via ?ref=, validate on load
+      if (referralInput.value) {
+        validateReferral(referralInput.value);
+      } else {
+        setBtnState();
+      }
+
+      function toggleVisibility(input, btn){
+        const isPwd = input.type === 'password';
+        input.type = isPwd ? 'text' : 'password';
+        btn.innerHTML = isPwd ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
+        input.focus();
+      }
+      togglePw.addEventListener('click', () => toggleVisibility(pw, togglePw));
+      togglePw2.addEventListener('click', () => toggleVisibility(pw2, togglePw2));
+
+      function caps(e){ const on = e.getModifierState && e.getModifierState('CapsLock'); capsHint.classList.toggle('show', !!on); }
+      pw.addEventListener('keydown', caps); pw.addEventListener('keyup', caps);
+
+      function scorePassword(p){
+        let score = 0;
+        if (!p) return 0;
+        const letters = {};
+        for (let i=0; i<p.length; i++){ letters[p[i]] = (letters[p[i]] || 0) + 1; score += 5.0 / letters[p[i]]; }
+        const variations = { digits: /\d/.test(p), lower: /[a-z]/.test(p), upper: /[A-Z]/.test(p), nonWords: /\W/.test(p) };
+        let variationCount = 0;
+        for (let check in variations){ variationCount += variations[check] ? 1 : 0; }
+        score += (variationCount - 1) * 10;
+        if (p.length >= 12) score += 10;
+        return Math.min(100, Math.floor(score));
+      }
+      function renderStrength(val){
+        strengthBar.style.width = val + '%';
+        if (val < 30){ strengthBar.style.background = "var(--cd-error)"; }
+        else if (val < 60){ strengthBar.style.background = 'var(--cd-warning)'; }
+        else if (val < 85){ strengthBar.style.background = "var(--cd-success)"; }
+        else { strengthBar.style.background = 'var(--cd-success)'; }
+      }
+      pw.addEventListener('input', () => renderStrength(scorePassword(pw.value)));
+
+      function checkMatch(){
+        if (!pw2.value){ matchText.textContent = ''; return; }
+        if (pw.value === pw2.value){
+          matchText.textContent = 'Passwords match.';
+          matchText.style.color = 'var(--cd-success-10)';
+          pw2.setCustomValidity('');
+        } else {
+          matchText.textContent = 'Passwords do not match.';
+          matchText.style.color = 'var(--cd-error-10)';
+          pw2.setCustomValidity('Passwords do not match');
+        }
+      }
+      pw.addEventListener('input', checkMatch);
+      pw2.addEventListener('input', checkMatch);
+
+      // Trim on blur so spaces don't bypass "required"
+      fields.forEach(el => {
+        el.addEventListener('blur', () => { if (el.value) el.value = el.value.trim(); });
+      });
+
+      // Custom friendly messages
+      const messages = {
+        first_name: 'First name is required.',
+        last_name: 'Last name is required.',
+        username: 'Username is required (min 3 chars, letters/digits/._-).',
+        email: 'A valid email is required.',
+        phone: 'Valid Ghana phone required (0 + 9 digits).',
+        whatsapp: 'Valid WhatsApp number required (0 + 9 digits).',
+        business_name: 'Business name is required.',
+        referral: 'Referral code is required.',
+        password: 'Password is required (min 8 chars).',
+        confirm_password: 'Please confirm your password (must match).'
+      };
+
+      const termsCheckbox = document.getElementById('terms');
+
+      form.addEventListener('submit', function(e){
+        // Trim values before validating
+        fields.forEach(el => { if (el.value) el.value = el.value.trim(); });
+
+        // Recheck password match
+        checkMatch();
+
+        // Ensure referral valid before allowing submit
+        if (!refValid){
+          e.preventDefault();
+          e.stopPropagation();
+          referralInput.focus();
+          referralInput.classList.add('is-invalid');
+          showRefStatus('invalid');
+          return;
+        }
+
+        // Ensure terms checked
+        if (!termsCheckbox.checked){
+          e.preventDefault();
+          e.stopPropagation();
+          const tosModal = new bootstrap.Modal(document.getElementById('tosModal'));
+          tosModal.show();
+          return;
+        }
+
+        // Per-field messages
+        fields.forEach(el => {
+          el.setCustomValidity('');
+          if (!el.checkValidity()){
+            if (messages[el.id]) el.setCustomValidity(messages[el.id]);
+          }
+        });
+
+        if (!form.checkValidity() || pw.value !== pw2.value){
+          e.preventDefault();
+          e.stopPropagation();
+          form.classList.add('was-validated');
+          const firstInvalid = form.querySelector(':invalid');
+          if (firstInvalid) firstInvalid.focus();
+          return;
+        }
+
+        // Submit UX
+        btn.disabled = true;
+        spinner.classList.remove('d-none');
+        btnText.textContent = 'Creating...';
+      }, {passive:false});
+    })();
+  </script>
+</body>
+</html>

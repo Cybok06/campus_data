@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{{ BRAND_NAME }} — Public Orders Insights</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+<link rel="icon" type="image/png" href="{{ BRAND_LOGO_URL }}">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+
+  <style>
+    :root{ --sea:var(--cd-primary); --sea-deep:var(--cd-primary); --ink:var(--cd-deep); }
+    .navbar{ background: linear-gradient(90deg, var(--sea-deep), var(--sea)); }
+    .navbar-brand img{ height:46px; width:46px; border-radius:10px; object-fit:cover; border:2px solid var(--cd-card)3; }
+    .metric-card, .panel-card{ border:none; border-radius:16px; box-shadow:0 10px 26px rgb(var(--cd-deep-rgb) / 0.08); }
+    .metric-value{ font-size:1.75rem; font-weight:800; letter-spacing:.2px; color:var(--ink); }
+    .metric-sub{ color:var(--cd-muted); font-size:.95rem; }
+    .badge-soft{ background: var(--cd-primary-10); color:var(--cd-primary); }
+    .table thead th{ white-space: nowrap; }
+    .pill{ border-radius:999px; padding:.2rem .6rem; font-weight:600; }
+    .wallet-balance{ font-size:1.5rem; font-weight:800; }
+    .form-control, .form-select{ border-radius:12px; }
+    .btn-round{ border-radius:999px; }
+  </style>
+</head>
+<body>
+    {% include 'admin_sidebar.html' %}
+
+  <nav class="navbar navbar-dark px-3">
+    <a class="navbar-brand d-flex align-items-center" href="/">
+      <img src="{{ BRAND_LOGO_URL }}" alt="{{ BRAND_NAME }}">
+      <span class="ms-2 fw-semibold text-white">{{ BRAND_NAME }} — Insights</span>
+    </a>
+    <div class="d-flex gap-2">
+      <a href="/" class="btn btn-light btn-sm btn-round">Home</a>
+      <a href="/check-status" class="btn btn-outline-light btn-sm btn-round">Check Status</a>
+    </div>
+  </nav>
+
+  <main class="container my-4 my-md-5">
+
+    <!-- Top metrics -->
+    <div class="row g-3">
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="card metric-card p-3">
+          <div class="metric-sub">System Price (Spend)</div>
+          <div class="metric-value">GHS {{ "%.2f"|format(cards.system_sum or 0) }}</div>
+        </div>
+      </div>
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="card metric-card p-3">
+          <div class="metric-sub">User Pay (Asked)</div>
+          <div class="metric-value">GHS {{ "%.2f"|format(cards.asked_sum or 0) }}</div>
+        </div>
+      </div>
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="card metric-card p-3">
+          <div class="metric-sub">Profit (All Time)</div>
+          <div class="metric-value text-success">GHS {{ "%.2f"|format(cards.profit_sum or 0) }}</div>
+        </div>
+      </div>
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="card metric-card p-3">
+          <div class="metric-sub">Profit (Today)</div>
+          <div class="metric-value text-success">GHS {{ "%.2f"|format(cards.todays_profit_sum or 0) }}</div>
+        </div>
+      </div>
+
+      <div class="col-12 col-xl-3">
+        <div class="card metric-card p-3 h-100">
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="metric-sub">Total Orders</div>
+            <span class="badge badge-soft pill">Public</span>
+          </div>
+          <div class="metric-value">{{ total_orders }}</div>
+        </div>
+      </div>
+
+      <!-- Wallet card -->
+      <div class="col-12 col-xl-9">
+        <div class="card panel-card p-3 p-md-4">
+          <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+            <div class="flex-grow-1">
+              <div class="d-flex flex-wrap align-items-center gap-3">
+                <div>
+                  <div class="metric-sub mb-1">Wallet — Total Profit (All Time)</div>
+                  <div class="wallet-balance text-success">GHS <span id="wallet-profit">{{ "%.2f"|format(cards.profit_sum or 0) }}</span></div>
+                </div>
+                <div class="vr d-none d-lg-block"></div>
+                <div>
+                  <div class="metric-sub mb-1">Withdrawn</div>
+                  <div class="metric-value">GHS <span id="wallet-withdrawn">{{ "%.2f"|format(cards.withdrawals_sum or 0) }}</span></div>
+                </div>
+                <div class="vr d-none d-lg-block"></div>
+                <div>
+                  <div class="metric-sub mb-1">Available</div>
+                  <div class="metric-value text-primary">GHS <span id="wallet-available">{{ "%.2f"|format(cards.available_balance or 0) }}</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="flex-grow-1">
+              <form id="withdraw-form" class="row g-2" onsubmit="return submitWithdraw(event)">
+                <div class="col-12 col-md-4">
+                  <label class="form-label mb-1 small">Amount (GHS)</label>
+                  <input type="number" step="0.01" min="0.01" class="form-control" id="wd-amount" required placeholder="e.g. 50.00">
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label mb-1 small">Note (optional)</label>
+                  <input type="text" class="form-control" id="wd-note" maxlength="120" placeholder="Mobile money / bank ref etc.">
+                </div>
+                <div class="col-12 col-md-2 d-flex align-items-end">
+                  <button class="btn btn-primary w-100 btn-round" id="wd-btn">
+                    <span class="btn-text"><i class="bi bi-cash-coin"></i> Withdraw</span>
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                  </button>
+                </div>
+              </form>
+              <div id="wd-msg" class="small mt-2"></div>
+            </div>
+          </div>
+
+          <!-- Withdrawal history -->
+          <div class="mt-4">
+            <div class="d-flex justify-content-between align-items-center">
+              <h2 class="h6 m-0">Withdrawal History</h2>
+              <form method="get" action="/shares" class="d-flex align-items-center gap-2">
+                <label class="text-muted small">Rows</label>
+                <select name="wper" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+                  {% for n in [5,10,20,50] %}
+                    <option value="{{ n }}" {% if n==wper %}selected{% endif %}>{{ n }}</option>
+                  {% endfor %}
+                </select>
+                <input type="hidden" name="wpage" value="1"/>
+                <!-- keep main table state -->
+                <input type="hidden" name="page" value="{{ page }}">
+                <input type="hidden" name="per_page" value="{{ per_page }}">
+              </form>
+            </div>
+
+            <div class="table-responsive mt-2">
+              <table class="table table-sm align-middle">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Reference</th>
+                    <th class="text-end">Amount (GHS)</th>
+                    <th>Note</th>
+                  </tr>
+                </thead>
+                <tbody id="wd-table-body">
+                  {% if not withdrawals %}
+                    <tr><td colspan="4" class="text-center text-muted py-3">No withdrawals yet.</td></tr>
+                  {% else %}
+                    {% for tx in withdrawals %}
+                      <tr>
+                        <td>{{ tx.created_at }}</td>
+                        <td class="text-break">{{ tx.reference }}</td>
+                        <td class="text-end">GHS {{ "%.2f"|format(tx.amount or 0) }}</td>
+                        <td class="text-break">{{ tx.note }}</td>
+                      </tr>
+                    {% endfor %}
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+
+            <nav class="d-flex justify-content-between align-items-center">
+              <div class="small text-muted">Page {{ wpage }} of {{ wpages }} · {{ wtotal }} withdrawals</div>
+              <ul class="pagination pagination-sm m-0">
+                <li class="page-item {% if wpage<=1 %}disabled{% endif %}">
+                  <a class="page-link" href="?wpage={{ wpage-1 if wpage>1 else 1 }}&wper={{ wper }}&page={{ page }}&per_page={{ per_page }}">Prev</a>
+                </li>
+                {% set wwindow = 2 %}
+                {% set wstart = [1, wpage - wwindow]|max %}
+                {% set wend   = [wpages, wpage + wwindow]|min %}
+                {% if wstart > 1 %}
+                  <li class="page-item"><a class="page-link" href="?wpage=1&wper={{ wper }}&page={{ page }}&per_page={{ per_page }}">1</a></li>
+                  {% if wstart > 2 %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+                {% endif %}
+                {% for p in range(wstart, wend+1) %}
+                  <li class="page-item {% if p==wpage %}active{% endif %}">
+                    <a class="page-link" href="?wpage={{ p }}&wper={{ wper }}&page={{ page }}&per_page={{ per_page }}">{{ p }}</a>
+                  </li>
+                {% endfor %}
+                {% if wend < wpages %}
+                  {% if wend < wpages - 1 %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+                  <li class="page-item"><a class="page-link" href="?wpage={{ wpages }}&wper={{ wper }}&page={{ page }}&per_page={{ per_page }}">{{ wpages }}</a></li>
+                {% endif %}
+                <li class="page-item {% if wpage>=wpages %}disabled{% endif %}">
+                  <a class="page-link" href="?wpage={{ wpage+1 if wpage<wpages else wpages }}&wper={{ wper }}&page={{ page }}&per_page={{ per_page }}">Next</a>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Orders panel -->
+    <div class="card panel-card p-3 p-md-4 mt-4">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+        <h1 class="h5 m-0">Public Orders (House Wallet)</h1>
+        <form class="d-flex align-items-center gap-2" method="get" action="/shares">
+          <label for="per_page" class="text-muted small">Rows per page</label>
+          <select id="per_page" name="per_page" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+            {% for n in [10,20,30,50,100] %}
+              <option value="{{ n }}" {% if n==per_page %}selected{% endif %}>{{ n }}</option>
+            {% endfor %}
+          </select>
+          <input type="hidden" name="page" value="1"/>
+          <!-- keep wallet pager -->
+          <input type="hidden" name="wpage" value="{{ wpage }}">
+          <input type="hidden" name="wper" value="{{ wper }}">
+        </form>
+      </div>
+
+      <div class="table-responsive mt-3">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Order ID</th>
+              <th>Paystack Ref</th>
+              <th class="text-end">System (GHS)</th>
+              <th class="text-end">Asked (GHS)</th>
+              <th class="text-end">Profit (GHS)</th>
+              <th>Status</th>
+              <th class="text-end">Items</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if not rows %}
+              <tr><td colspan="8" class="text-center text-muted py-4">No orders found.</td></tr>
+            {% else %}
+              {% for r in rows %}
+                <tr>
+                  <td>{{ r.created_at }}</td>
+                  <td class="text-break">{{ r.order_id }}</td>
+                  <td class="text-break">{{ r.paystack_reference }}</td>
+                  <td class="text-end">GHS {{ "%.2f"|format(r.system_total or 0) }}</td>
+                  <td class="text-end">GHS {{ "%.2f"|format(r.asked_total or 0) }}</td>
+                  <td class="text-end fw-semibold {% if (r.profit or 0) >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    GHS {{ "%.2f"|format(r.profit or 0) }}
+                  </td>
+                  <td>
+                    {% set st = (r.status or '')|lower %}
+                    {% if st == 'completed' %}
+                      <span class="badge bg-success">Completed</span>
+                    {% elif st == 'failed' %}
+                      <span class="badge bg-danger">Failed</span>
+                    {% elif st == 'processing' %}
+                      <span class="badge bg-warning text-dark">Processing</span>
+                    {% else %}
+                      <span class="badge bg-secondary">{{ r.status }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end">{{ r.items_count }}</td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+
+      <nav class="d-flex justify-content-between align-items-center">
+        <div class="small text-muted">
+          Page {{ page }} of {{ total_pages }} · {{ total_orders }} orders
+        </div>
+        <ul class="pagination pagination-sm m-0">
+          <li class="page-item {% if page<=1 %}disabled{% endif %}">
+            <a class="page-link" href="?page={{ page-1 if page>1 else 1 }}&per_page={{ per_page }}&wpage={{ wpage }}&wper={{ wper }}">Prev</a>
+          </li>
+          {% set window = 2 %}
+          {% set start = [1, page - window]|max %}
+          {% set end   = [total_pages, page + window]|min %}
+          {% if start > 1 %}
+            <li class="page-item"><a class="page-link" href="?page=1&per_page={{ per_page }}&wpage={{ wpage }}&wper={{ wper }}">1</a></li>
+            {% if start > 2 %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+          {% endif %}
+          {% for p in range(start, end+1) %}
+            <li class="page-item {% if p==page %}active{% endif %}">
+              <a class="page-link" href="?page={{ p }}&per_page={{ per_page }}&wpage={{ wpage }}&wper={{ wper }}">{{ p }}</a>
+            </li>
+          {% endfor %}
+          {% if end < total_pages %}
+            {% if end < total_pages - 1 %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+            <li class="page-item"><a class="page-link" href="?page={{ total_pages }}&per_page={{ per_page }}&wpage={{ wpage }}&wper={{ wper }}">{{ total_pages }}</a></li>
+          {% endif %}
+          <li class="page-item {% if page>=total_pages %}disabled{% endif %}">
+            <a class="page-link" href="?page={{ page+1 if page<total_pages else total_pages }}&per_page={{ per_page }}&wpage={{ wpage }}&wper={{ wper }}">Next</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </main>
+
+  <script>
+    function setBtnLoading(btn, on){
+      const t = btn.querySelector(".btn-text");
+      const s = btn.querySelector(".spinner-border");
+      if(on){ btn.setAttribute("disabled","disabled"); s && s.classList.remove("d-none"); t && t.classList.add("d-none"); }
+      else { btn.removeAttribute("disabled"); s && s.classList.add("d-none"); t && t.classList.remove("d-none"); }
+    }
+    function money(n){ return (Number(n||0)).toFixed(2); }
+
+    async function submitWithdraw(ev){
+      ev.preventDefault();
+      const btn = document.getElementById("wd-btn");
+      const amount = Number(document.getElementById("wd-amount").value || 0);
+      const note = (document.getElementById("wd-note").value || "").trim();
+      const msg = document.getElementById("wd-msg");
+      msg.textContent = "";
+      if(!(amount>0)){ msg.textContent = "Enter a valid amount."; return false; }
+
+      setBtnLoading(btn,true);
+      try{
+        const res = await fetch("/shares/withdraw", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ amount, note })
+        });
+        const data = await res.json();
+        if(!res.ok || !data.success){
+          msg.className = "small mt-2 text-danger";
+          msg.textContent = data.message || "Withdraw failed.";
+          setBtnLoading(btn,false);
+          return false;
+        }
+        // Update wallet figures
+        document.getElementById("wallet-profit").textContent = money(data.wallet.profit_sum);
+        document.getElementById("wallet-withdrawn").textContent = money(data.wallet.withdrawals_sum);
+        document.getElementById("wallet-available").textContent = money(data.wallet.available_balance);
+
+        // Prepend row to history
+        const tb = document.getElementById("wd-table-body");
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${data.tx.created_at}</td>
+          <td class="text-break">${data.tx.reference}</td>
+          <td class="text-end">GHS ${money(data.tx.amount)}</td>
+          <td class="text-break">${data.tx.note}</td>
+        `;
+        if(tb){
+          if(tb.querySelector("td[colspan='4']")) tb.innerHTML = "";
+          tb.prepend(tr);
+        }
+
+        // Clear form + toast message
+        document.getElementById("wd-amount").value = "";
+        document.getElementById("wd-note").value = "";
+        msg.className = "small mt-2 text-success";
+        msg.textContent = "Withdrawal recorded.";
+      }catch(e){
+        msg.className = "small mt-2 text-danger";
+        msg.textContent = "Network error.";
+      }finally{
+        setBtnLoading(btn,false);
+      }
+      return false;
+    }
+  </script>
+</body>
+</html>

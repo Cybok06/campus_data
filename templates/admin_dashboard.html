@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" href="{{ BRAND_LOGO_URL }}">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    .kpi { font-variant-numeric: tabular-nums; }
+    .card h6 { margin-bottom: .25rem; }
+    .chart-wrap { position: relative; width: 100%; height: 360px; }
+    @media (min-width: 1400px) { .chart-wrap { height: 420px; } }
+    .table td, .table th { vertical-align: middle; }
+    .card-icon {
+      width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center;
+      border-radius: .75rem; background: var(--cd-primary-10);
+    }
+    .card-icon.success { background: var(--cd-success-10); }
+    .card-icon.warning { background: var(--cd-warning-10); }
+    .card-icon.info    { background: var(--cd-primary-10); }
+    .card-icon.afa { background: var(--cd-primary-10); }
+
+    /* Blink / glow for the KPI count */
+    .blink { animation: kpi-blink 1.2s steps(2, start) infinite; }
+    @keyframes kpi-blink { 50% { opacity: .35; } }
+
+    /* Subtle bump when the number updates */
+    .bump { animation: kpi-bump .6s ease-out; }
+    @keyframes kpi-bump {
+      0% { transform: scale(1); }
+      35% { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+
+    /* Profit trend chip */
+    .trend-chip { font-weight: 600; padding: .2rem .5rem; border-radius: 999px; font-size: .85rem; }
+    .trend-up { color: var(--cd-success); background: var(--cd-success-10); }
+    .trend-down { color: var(--cd-error); background: var(--cd-error-10); }
+    .trend-flat { color: var(--cd-primary); background: var(--cd-primary-15); }
+
+    /* Section headings */
+    .section-title { font-size: .9rem; text-transform: uppercase; letter-spacing: .06em; color: var(--cd-muted); margin: .25rem 0 .5rem; }
+
+    /* Withdraw request modal helpers */
+    .pill {
+      display:inline-flex; align-items:center; gap:.4rem;
+      padding:.15rem .55rem; border-radius:999px; font-size:.78rem; font-weight:600;
+      border:1px solid rgb(var(--cd-deep-rgb) / 0.06);
+      white-space:nowrap;
+    }
+    .pill-pending { background: var(--cd-warning-10); color:var(--cd-warning); }
+    .pill-paid { background: var(--cd-success-10); color:var(--cd-success); }
+    .pill-rejected { background: var(--cd-error-10); color:var(--cd-error); }
+    .pill-other { background: var(--cd-primary-10); color:var(--cd-primary); }
+
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+<body>
+  {% include 'admin_sidebar.html' %}
+
+  <div class="customer-content">
+    <div class="container-fluid">
+
+      <!-- Header -->
+      <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
+        <h3 class="mb-2 mb-sm-0">Admin Dashboard</h3>
+      </div>
+
+     
+      
+ <!-- ========== SECTION: Today’s Profit + 6-day chart ========== -->
+      <div class="row g-3 mb-4">
+        <div class="col-12">
+          <div class="section-title">Today & Recent Trend</div>
+        </div>
+
+        <!-- Today’s Profit + Statement -->
+        <div class="col-12 col-xxl-5">
+          <div class="card shadow-sm h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="text-muted mb-0">Today’s Profit</h6>
+                <span class="card-icon success"><i class="bi bi-graph-up-arrow text-success"></i></span>
+              </div>
+              <div class="display-5 kpi mt-2">
+                <span class="ghs" data-amt="{{ (today_profit or 0)|float }}">GHS 0.00</span>
+              </div>
+
+              <div class="small text-muted mt-2">
+                Yesterday: <span class="ghs" data-amt="{{ (yesterday_profit or 0)|float }}">GHS 0.00</span>
+                <span class="ms-2">
+                  {% set trend_class = 'trend-flat' %}
+                  {% if profit_trend == 'up' %}{% set trend_class = 'trend-up' %}{% endif %}
+                  {% if profit_trend == 'down' %}{% set trend_class = 'trend-down' %}{% endif %}
+                  <span class="trend-chip {{ trend_class }}">
+                    {% if profit_trend == 'up' %}
+                      +{{ profit_change_pct or 0 }}%
+                    {% elif profit_trend == 'down' %}
+                      -{{ (profit_change_pct or 0)|abs }}%
+                    {% else %}
+                      0%
+                    {% endif %}
+                  </span>
+                </span>
+              </div>
+
+              <div class="mt-2">
+                <small class="text-muted">{{ profit_statement }}</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6-day Profit Chart -->
+        <div class="col-12 col-xxl-7">
+          <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span class="fw-semibold">Profit (Last 5 Days + Today)</span>
+            </div>
+            <div class="card-body">
+              {% if daily_profit_values and daily_profit_values|length > 0 %}
+                <div class="chart-wrap">
+                  <canvas id="dailyProfitChart" aria-label="Daily profit chart" role="img"></canvas>
+                </div>
+              {% else %}
+                <div class="text-center text-muted py-5">
+                  <div class="mb-2">No profit data yet.</div>
+                  <small>As orders accrue, this chart will populate.</small>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+<!-- ========== SECTION: Core KPIs (organized grid) ========== -->
+      <div class="row g-3 mb-4">
+        <div class="col-12">
+          <div class="section-title">Core KPIs</div>
+        </div>
+
+        <!-- Row A -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <a href="{{ url_for('admin_customers.view_customers') }}" class="text-decoration-none text-reset">
+            <div class="card shadow-sm h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <h6 class="text-muted mb-0">Total Customers</h6>
+                  <span class="card-icon"><i class="bi bi-people-fill text-primary"></i></span>
+                </div>
+                <div class="display-6 kpi mt-2">{{ total_customers or 0 }}</div>
+                <div class="small mt-2">
+                  <a class="badge text-bg-danger text-decoration-none"
+                     href="{{ url_for('admin_customers.view_customers') }}?status=blocked">
+                    Blocked: {{ blocked_customers or 0 }}
+                  </a>
+                  <a class="badge text-bg-success ms-2 text-decoration-none"
+                     href="{{ url_for('admin_customers.view_customers') }}?status=active">
+                    Active: {{ active_customers or 0 }}
+                  </a>
+                </div>
+              </div>
+            </div>
+          </a>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="card shadow-sm h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="text-muted mb-0">Total Orders</h6>
+                <span class="card-icon"><i class="bi bi-bag-check-fill text-primary"></i></span>
+              </div>
+              <div class="display-6 kpi mt-2">{{ total_orders or 0 }}</div>
+              <div class="small text-muted">All-time orders across customers</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="card shadow-sm h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="text-muted mb-0">Total Amount</h6>
+                <span class="card-icon info"><i class="bi bi-currency-exchange text-info"></i></span>
+              </div>
+              <div class="display-6 kpi mt-2">
+                <span class="ghs" data-amt="{{ (sum_total_amount or 0)|float }}">GHS 0.00</span>
+              </div>
+              <div class="small text-muted">Sum of order totals</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="card shadow-sm h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="text-muted mb-0">Total Charged</h6>
+                <span class="card-icon warning"><i class="bi bi-credit-card-2-front text-warning"></i></span>
+              </div>
+              <div class="display-6 kpi mt-2">
+                <span class="ghs" data-amt="{{ (sum_charged_amount or 0)|float }}">GHS 0.00</span>
+              </div>
+              <div class="small text-muted">What customers actually paid</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row B -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="card shadow-sm h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="text-muted mb-0">Total Profit</h6>
+                <span class="card-icon success"><i class="bi bi-graph-up-arrow text-success"></i></span>
+              </div>
+              <div class="display-6 kpi mt-2">
+                <span class="ghs" data-amt="{{ (sum_profit_amount or 0)|float }}">GHS 0.00</span>
+              </div>
+              <div class="small text-muted">Cumulative profit from all orders</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+          <a href="{{ url_for('admin_transactions.admin_view_transactions') }}" class="text-decoration-none text-reset">
+            <div class="card h-100 border-0 shadow-lg" style="background: var(--cd-primary-10);">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <h6 class="text-muted mb-0">Transactions</h6>
+                  <span class="card-icon" style="background: var(--cd-primary-10);">
+                    <i class="bi bi-cash-coin text-primary fs-4"></i>
+                  </span>
+                </div>
+                <div class="display-6 kpi mt-2 fw-bold text-dark">
+                  {{ txn_total_count if txn_total_count is defined else 0 }}
+                </div>
+                <div class="small mt-2 text-muted">
+                  Today: <strong>{{ txn_today_count if txn_today_count is defined else 0 }}</strong>
+                  <span class="d-block d-sm-inline ms-sm-2">
+                    · Sum: <span class="ghs" data-amt="{{ (txn_total_amount or 0)|float }}">GHS 0.00</span>
+                    (Today <span class="ghs" data-amt="{{ (txn_today_amount or 0)|float }}">GHS 0.00</span>)
+                  </span>
+                </div>
+              </div>
+            </div>
+          </a>
+        </div>
+
+        <!-- ✅ NEW CARD: Withdrawal Requests -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <button type="button" class="w-100 text-start p-0 border-0 bg-transparent" id="btnOpenWithdrawRequests">
+            <div class="card h-100 border-0 shadow-lg" style="background: linear-gradient(135deg, var(--cd-card)7e6, var(--cd-card)df7);">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <h6 class="text-muted mb-0">Withdrawal Requests</h6>
+                  <span class="card-icon warning">
+                    <i class="bi bi-cash-stack text-warning fs-4"></i>
+                  </span>
+                </div>
+
+                <div class="display-6 kpi mt-2 fw-bold text-dark">
+                  <span id="wdreq-count"
+                        class="{% if (withdraw_requests_pending or 0) > 0 %}blink{% endif %}"
+                        data-val="{{ withdraw_requests_pending or 0 }}">
+                    {{ withdraw_requests_pending or 0 }}
+                  </span>
+                </div>
+
+                <div class="small mt-2 text-muted">
+                  Pending / Processing requests
+                  <span class="d-block">Click to review & update status</span>
+                </div>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+          <a href="{{ url_for('admin_afa.admin_afa_page') }}" class="text-decoration-none text-reset">
+            <div class="card h-100 border-0 shadow-lg" style="background: var(--cd-primary-10);">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <h6 class="text-muted mb-0">AFA Registrations</h6>
+                  <span class="card-icon afa">
+                    <i class="bi bi-card-checklist text-primary fs-4"></i>
+                  </span>
+                </div>
+                <div class="display-6 kpi mt-2 fw-bold text-dark">
+                  <span id="afa-total" class="blink" data-val="{{ (afa_total or 0) if afa_total is defined else 0 }}">
+                    {{ afa_total if afa_total is defined else 0 }}
+                  </span>
+                </div>
+                <div class="small mt-2 text-muted">
+                  Pending: <span id="afa-pending">{{ afa_pending if afa_pending is defined else 0 }}</span>
+                  · Today: <span id="afa-today">{{ afa_today if afa_today is defined else 0 }}</span>
+                </div>
+              </div>
+            </div>
+          </a>
+        </div>
+
+        <!-- User Account Balance (Total) -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="card shadow-sm h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="text-muted mb-0">User Account Balance (Total)</h6>
+                <span class="card-icon info"><i class="bi bi-wallet2 text-info"></i></span>
+              </div>
+              <div class="display-6 kpi mt-2">
+                <span class="ghs" data-amt="{{ (total_user_balance_amount or 0)|float }}">GHS 0.00</span>
+              </div>
+              <div class="small text-muted">
+                Wallets: {{ balance_doc_count or 0 }} &middot; Positive: {{ positive_balance_count or 0 }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Outstanding Payouts (Stores) -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="card shadow-sm h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="text-muted mb-0">Outstanding Payouts (Stores)</h6>
+                <span class="card-icon warning"><i class="bi bi-cash-stack text-danger"></i></span>
+              </div>
+              <div class="display-6 kpi mt-2 text-danger">
+                <span class="ghs" data-amt="{{ (outstanding_payouts or 0)|float }}">GHS 0.00</span>
+              </div>
+              <div class="small text-muted">Total profit balance across all stores</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- ========== SECTION: Wallet Flows ========== -->
+      <div class="row g-3 mb-4">
+        <div class="col-12">
+          <div class="section-title">Wallet Flows</div>
+        </div>
+        <div class="col-12 col-xxl-8">
+          <a href="{{ url_for('admin_balance.view_balances') }}" class="text-decoration-none text-reset">
+            <div class="card shadow-sm h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <h6 class="text-muted mb-0">Deposits & Deductions</h6>
+                  <span class="card-icon info"><i class="bi bi-wallet2 text-info"></i></span>
+                </div>
+                <div class="row mt-3">
+                  <div class="col-6">
+                    <div class="small text-muted">Total Deposits</div>
+                    <div class="h4 kpi">
+                      <span class="ghs" data-amt="{{ (deposits_overall or 0)|float }}">GHS 0.00</span>
+                    </div>
+                  </div>
+                  <div class="col-6 text-end">
+                    <div class="small text-muted">Total Deductions</div>
+                    <div class="h4 kpi">
+                      <span class="ghs" data-amt="{{ (withdrawals_overall or 0)|float }}">GHS 0.00</span>
+                    </div>
+                  </div>
+                </div>
+                <hr class="my-3">
+                <div class="row">
+                  <div class="col-6">
+                    <div class="small text-muted">Today’s Deposits</div>
+                    <div class="h5 kpi">
+                      <span class="ghs" data-amt="{{ (deposits_today or 0)|float }}">GHS 0.00</span>
+                    </div>
+                  </div>
+                  <div class="col-6 text-end">
+                    <div class="small text-muted">Today’s Deductions</div>
+                    <div class="h5 kpi">
+                      <span class="ghs" data-amt="{{ (withdrawals_today or 0)|float }}">GHS 0.00</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="small text-muted mt-2">Click to view balances</div>
+              </div>
+            </div>
+          </a>
+        </div>
+
+        <div class="col-12 col-xxl-4">
+          <div class="card shadow-sm h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="text-muted mb-0">Quick Wallet Snapshot</h6>
+                <span class="card-icon"><i class="bi bi-speedometer2 text-primary"></i></span>
+              </div>
+              <div class="row mt-3">
+                <div class="col-6">
+                  <div class="small text-muted">All Deposits</div>
+                  <div class="h5 kpi"><span class="ghs" data-amt="{{ (deposits_overall or 0)|float }}">GHS 0.00</span></div>
+                </div>
+                <div class="col-6 text-end">
+                  <div class="small text-muted">All Deductions</div>
+                  <div class="h5 kpi"><span class="ghs" data-amt="{{ (withdrawals_overall or 0)|float }}">GHS 0.00</span></div>
+                </div>
+              </div>
+              <hr class="my-2">
+              <div class="small text-muted">Shows cumulative wallet movement across users.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== SECTION: Top Customers & Profit ========== -->
+      <div class="row g-3 mb-4">
+        <div class="col-12">
+          <div class="section-title">Customers</div>
+        </div>
+
+        <div class="col-12 col-xxl-6">
+          <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span class="fw-semibold">Top Customers by Orders</span>
+              <span class="text-muted small">Top 10</span>
+            </div>
+            <div class="card-body">
+              {% if chart_values and chart_values|length > 0 %}
+                <div class="chart-wrap">
+                  <canvas id="ordersBarChart" aria-label="Top customers by orders" role="img"></canvas>
+                </div>
+              {% else %}
+                <div class="text-center text-muted py-5">
+                  <div class="mb-2">No order data yet.</div>
+                  <small>When orders come in, you’ll see your top customers here.</small>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-xxl-6">
+          <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span class="fw-semibold">Top Customers by Profit</span>
+              <span class="text-muted small">Top 10</span>
+            </div>
+            <div class="card-body">
+              {% if profit_chart_values and profit_chart_values|length > 0 %}
+                <div class="chart-wrap">
+                  <canvas id="profitBarChart" aria-label="Top customers by profit" role="img"></canvas>
+                </div>
+              {% else %}
+                <div class="text-center text-muted py-5">
+                  <div class="mb-2">No profit data yet.</div>
+                  <small>As profits accrue, this chart will populate.</small>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== SECTION: Agent Sales ========== -->
+      <div class="row g-3 mb-4">
+        <div class="col-12">
+          <div class="section-title">Agents</div>
+        </div>
+
+        <div class="col-12 col-xxl-6">
+          <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span class="fw-semibold">Agent Sales (Top 10)</span>
+              <span class="text-muted small">Accumulative</span>
+            </div>
+            <div class="card-body">
+              {% if agent_sales_values and agent_sales_values|length > 0 %}
+                <div class="chart-wrap">
+                  <canvas id="agentSalesChart" aria-label="Agent sales (cumulative)" role="img"></canvas>
+                </div>
+              {% else %}
+                <div class="text-center text-muted py-5">
+                  <div class="mb-2">No agent sales yet.</div>
+                  <small>As orders come in with agent attribution, this chart will populate.</small>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-xxl-6">
+          <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span class="fw-semibold">Top Agents (Cumulative Sales)</span>
+              <span class="text-muted small">Top 10</span>
+            </div>
+            <div class="card-body">
+              {% if top_agents_rows and top_agents_rows|length %}
+                <div class="table-responsive">
+                  <table class="table table-sm align-middle">
+                    <thead class="table-light">
+                      <tr>
+                        <th style="width:40px;">#</th>
+                        <th>Agent</th>
+                        <th class="text-end">Sales (GHS)</th>
+                        <th class="text-end">Lines</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for r in top_agents_rows %}
+                        <tr>
+                          <td>{{ loop.index }}</td>
+                          <td title="{{ r.agent_id }}">{{ r.agent }}</td>
+                          <td class="text-end">
+                            <span class="ghs" data-amt="{{ (r.sales or 0)|float }}">GHS 0.00</span>
+                          </td>
+                          <td class="text-end">{{ r.lines }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              {% else %}
+                <div class="text-center text-muted py-5">
+                  <div class="mb-2">No agent data to rank yet.</div>
+                  <small>When agent-attributed lines exist, this list will update.</small>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== SECTION: Top Offers Purchased ========== -->
+      <div class="row g-3 mb-4">
+        <div class="col-12">
+          <div class="section-title">Products & Offers</div>
+        </div>
+        <div class="col-12">
+          <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span class="fw-semibold">Top Offers Purchased</span>
+              <span class="text-muted small">Top 10</span>
+            </div>
+            <div class="card-body">
+              {% if top_offers and top_offers|length %}
+                <div class="table-responsive">
+                  <table class="table table-sm align-middle">
+                    <thead class="table-light">
+                      <tr>
+                        <th style="width:40px;">#</th>
+                        <th>Service</th>
+                        <th>Offer</th>
+                        <th class="text-end">Purchases</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in top_offers %}
+                        <tr>
+                          <td>{{ loop.index }}</td>
+                          <td>{{ row.service }}</td>
+                          <td>{{ row.offer }}</td>
+                          <td class="text-end">{{ row.count }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              {% else %}
+                <div class="text-center text-muted py-5">
+                  <div class="mb-2">No purchases to rank yet.</div>
+                  <small>Once completed orders exist, this list will update.</small>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- JSON blobs -->
+      <script id="orders-chart-data" type="application/json">
+        {{ {'labels': chart_labels or [], 'values': chart_values or []} | tojson }}
+      </script>
+      <script id="profit-chart-data" type="application/json">
+        {{ {'labels': profit_chart_labels or [], 'values': profit_chart_values or []} | tojson }}
+      </script>
+      <script id="daily-profit-data" type="application/json">
+        {{ {'labels': daily_profit_labels or [], 'values': daily_profit_values or []} | tojson }}
+      </script>
+      <script id="agent-sales-data" type="application/json">
+        {{ {'labels': agent_sales_labels or [], 'values': agent_sales_values or []} | tojson }}
+      </script>
+
+    </div>
+  </div>
+
+  <!-- ✅ Withdrawal Requests Modal -->
+  <div class="modal fade" id="withdrawRequestsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title mb-0">
+              <i class="bi bi-cash-stack text-warning me-1"></i>
+              Withdrawal Requests
+            </h5>
+            <div class="small text-muted">Update status: <strong>Paid</strong>, <strong>Processing</strong>, <strong>Canceld</strong></div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+              <div class="btn-group btn-group-sm" role="group" aria-label="Withdrawal tabs">
+                <button type="button" class="btn btn-outline-primary active" id="wdTabUnpaid">
+                  Unpaid
+                </button>
+                <button type="button" class="btn btn-outline-primary" id="wdTabPaid">
+                  Recent payouts
+                </button>
+              </div>
+
+              <input type="search" class="form-control form-control-sm" id="wdFilterQ"
+                     placeholder="Search reference…" style="max-width:260px;">
+            </div>
+
+            <button class="btn btn-outline-primary btn-sm" id="wdBtnRefresh" type="button">
+              <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+            </button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:180px;">Reference</th>
+                  <th style="width:160px;">Store</th>
+                  <th style="width:140px;">Method</th>
+                  <th class="text-end" style="width:140px;">Amount</th>
+                  <th style="width:150px;">Status</th>
+                  <th style="width:170px;">Created</th>
+                  <th style="width:240px;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="wdRows">
+                <tr>
+                  <td colspan="7" class="text-muted small">
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Loading withdrawal requests…
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="small text-muted mt-2">
+            Note: UI labels map to backend statuses:
+            <span class="mono">Processing → pending</span>,
+            <span class="mono">Canceld → rejected</span>,
+            <span class="mono">Paid → paid</span>.
+          </div>
+
+          <div class="d-flex justify-content-end mt-3">
+            <button class="btn btn-outline-secondary btn-sm d-none" id="wdBtnMore" type="button">
+              View more
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    // Currency formatter available to all charts
+    const fmtMoney = (n) => 'GHS ' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    // Format any .ghs amounts as "GHS 12,345.00"
+    document.querySelectorAll('.ghs').forEach(el => {
+      const raw = (el.getAttribute('data-amt') || '').toString().replace(/[^\d.-]/g,'');
+      const n = parseFloat(raw);
+      if (!isNaN(n)) { el.textContent = fmtMoney(n); }
+    });
+
+    function renderBarChart(canvasId, blobId, labelText, valueFormatter) {
+      const blob = document.getElementById(blobId);
+      if (!blob) return;
+      let data;
+      try { data = JSON.parse(blob.textContent || '{}'); } catch { data = {}; }
+      const labels = Array.isArray(data.labels) ? data.labels : [];
+      const values = Array.isArray(data.values) ? data.values : [];
+      if (!values.length) return;
+
+      const ctx = document.getElementById(canvasId);
+      if (!ctx) return;
+
+      new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets: [{ label: labelText, data: values, borderWidth: 1 }] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { ticks: { maxRotation: 45, minRotation: 0, autoSkip: true } },
+            y: {
+              beginAtZero: true,
+              ticks: { precision: 0, callback: (v) => valueFormatter ? valueFormatter(v) : v }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const v = ctx.parsed.y;
+                  return valueFormatter ? `${labelText}: ${valueFormatter(v)}` : `${labelText}: ${v}`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Orders chart
+    renderBarChart('ordersBarChart', 'orders-chart-data', 'Orders');
+    // Profit chart (format y-axis as currency)
+    renderBarChart('profitBarChart', 'profit-chart-data', 'Profit', fmtMoney);
+    // Agent sales chart (currency)
+    renderBarChart('agentSalesChart', 'agent-sales-data', 'Sales', fmtMoney);
+
+    // Daily profit line chart
+    (function(){
+      const blob = document.getElementById('daily-profit-data');
+      if (!blob) return;
+      let data;
+      try { data = JSON.parse(blob.textContent || '{}'); } catch { data = {}; }
+      const labels = Array.isArray(data.labels) ? data.labels : [];
+      const values = Array.isArray(data.values) ? data.values : [];
+      if (!values.length) return;
+
+      const ctx = document.getElementById('dailyProfitChart');
+      if (!ctx) return;
+
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{ label: 'Daily Profit', data: values, fill: false, tension: 0.3 }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, ticks: { callback: (v) => fmtMoney(v) } }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: (ctx) => `Profit: ${fmtMoney(ctx.parsed.y)}` } }
+          }
+        }
+      });
+    })();
+
+    // ================================
+    // ✅ Withdrawal Requests Modal logic
+    // ================================
+    const wdModalEl = document.getElementById('withdrawRequestsModal');
+    const wdModal = wdModalEl ? bootstrap.Modal.getOrCreateInstance(wdModalEl) : null;
+
+    const wdRows = document.getElementById('wdRows');
+    const wdBtnOpen = document.getElementById('btnOpenWithdrawRequests');
+    const wdBtnRefresh = document.getElementById('wdBtnRefresh');
+    const wdTabUnpaid = document.getElementById('wdTabUnpaid');
+    const wdTabPaid = document.getElementById('wdTabPaid');
+    const wdBtnMore = document.getElementById('wdBtnMore');
+    const wdFilterQ = document.getElementById('wdFilterQ');
+
+    // API endpoints
+    const WD_LIST_URL = "/admin/withdrawals/list";
+    const WD_UPDATE_URL = "/admin/withdrawals/update";
+
+    function pillStatusBackend(st){
+      const s = String(st || '').toLowerCase();
+      if (s === 'pending') return '<span class="pill pill-pending"><i class="bi bi-hourglass-split"></i> pending</span>';
+      if (s === 'paid') return '<span class="pill pill-paid"><i class="bi bi-check2-circle"></i> paid</span>';
+      if (s === 'rejected') return '<span class="pill pill-rejected"><i class="bi bi-x-circle"></i> canceld</span>';
+      return '<span class="pill pill-other"><i class="bi bi-info-circle"></i> ' + (s || '-') + '</span>';
+    }
+
+    function methodChip(m){
+      const s = String(m || '').toLowerCase();
+      if (s === 'momo') return '<span class="badge text-bg-light border"><i class="bi bi-phone me-1"></i>MoMo</span>';
+      if (s === 'wallet') return '<span class="badge text-bg-light border"><i class="bi bi-wallet2 me-1"></i>Wallet</span>';
+      return '<span class="badge text-bg-light border">' + (s || '-') + '</span>';
+    }
+
+    function toBackendStatus(uiStatus){
+      // UI: Paid / Processing / Canceld
+      const s = String(uiStatus || '').toLowerCase();
+      if (s === 'paid') return 'paid';
+      if (s === 'processing') return 'pending';
+      if (s === 'canceld') return 'rejected';
+      return 'pending';
+    }
+
+    function formatDate(s){
+      return s ? s : '-';
+    }
+
+    let wdTab = 'unpaid';
+    let wdOffset = 0;
+
+    function setWdTab(nextTab){
+      wdTab = nextTab;
+      wdOffset = 0;
+      if (wdTabUnpaid && wdTabPaid) {
+        wdTabUnpaid.classList.toggle('active', wdTab === 'unpaid');
+        wdTabPaid.classList.toggle('active', wdTab === 'paid');
+      }
+      if (wdBtnMore && wdTab === 'unpaid') {
+        wdBtnMore.classList.add('d-none');
+      }
+      loadWithdrawRequests(false);
+    }
+
+    function buildWdRows(items){
+      return items.map(it => {
+        const id = it._id || it.id || '';
+        const ref = it.reference || '-';
+        const slug = it.store_slug || '-';
+        const method = methodChip(it.method);
+        const amt = fmtMoney(Number(it.amount || 0));
+        const statusPill = pillStatusBackend(it.status);
+        const created = formatDate(it.created_at);
+        const disabled = (String(it.status||'').toLowerCase() === 'paid') ? 'disabled' : '';
+
+        return `
+          <tr data-id="${id}">
+            <td class="mono">${ref}</td>
+            <td>${slug}</td>
+            <td>${method}</td>
+            <td class="text-end">${amt}</td>
+            <td>${statusPill}</td>
+            <td>${created}</td>
+            <td>
+              <div class="d-flex gap-2 flex-wrap">
+                <select class="form-select form-select-sm wd-status" style="max-width:170px;" ${disabled}>
+                  <option value="Processing" ${(String(it.status).toLowerCase()==='pending')?'selected':''}>Processing</option>
+                  <option value="Paid" ${(String(it.status).toLowerCase()==='paid')?'selected':''}>Paid</option>
+                  <option value="Canceld" ${(String(it.status).toLowerCase()==='rejected')?'selected':''}>Canceld</option>
+                </select>
+
+                <button type="button" class="btn btn-primary btn-sm wd-save" ${disabled}>
+                  <i class="bi bi-save2 me-1"></i> Update
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function loadWithdrawRequests(append){
+      if (!wdRows) return;
+
+      const status = (wdTab === 'paid') ? 'paid' : 'unpaid';
+      const q = (wdFilterQ && wdFilterQ.value) ? wdFilterQ.value.trim() : '';
+      const limit = (wdTab === 'paid') ? 5 : 100;
+
+      const url = new URL(WD_LIST_URL, window.location.origin);
+      url.searchParams.set('limit', String(limit));
+      url.searchParams.set('offset', String(wdOffset));
+      if (status) url.searchParams.set('status', status);
+      if (q) url.searchParams.set('q', q);
+
+      if (!append) {
+        wdRows.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-muted small">
+              <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+              Loading withdrawal requests…
+            </td>
+          </tr>
+        `;
+      }
+
+      try{
+        const r = await fetch(url.toString(), { headers: { 'Accept': 'application/json' } });
+        const j = await r.json();
+
+        if (!r.ok || !(j && (j.success || j.ok))){
+          const msg = (j && (j.message || j.error)) ? (j.message || j.error) : 'Failed to load.';
+          wdRows.innerHTML = `<tr><td colspan="7" class="text-danger small">${msg}</td></tr>`;
+          return;
+        }
+
+        const items = j.items || [];
+        if (!items.length){
+          if (!append) {
+            wdRows.innerHTML = `<tr><td colspan="7" class="text-muted small">No withdrawal requests found.</td></tr>`;
+          }
+          if (wdBtnMore) wdBtnMore.classList.add('d-none');
+          return;
+        }
+
+        const html = buildWdRows(items);
+        if (append) {
+          wdRows.insertAdjacentHTML('beforeend', html);
+        } else {
+          wdRows.innerHTML = html;
+        }
+        wdOffset += items.length;
+        if (wdBtnMore) {
+          const showMore = (wdTab === 'paid' && items.length === limit);
+          wdBtnMore.classList.toggle('d-none', !showMore);
+        }
+
+      }catch(e){
+        if (!append) {
+          wdRows.innerHTML = `<tr><td colspan="7" class="text-danger small">Network error loading requests.</td></tr>`;
+        }
+      }
+    }
+
+    async function updateWithdrawRequest(rowEl){
+      const id = rowEl.getAttribute('data-id');
+      const sel = rowEl.querySelector('.wd-status');
+      const btn = rowEl.querySelector('.wd-save');
+
+      if (!id || !sel || !btn) return;
+
+      const uiStatus = sel.value;
+      const backendStatus = toBackendStatus(uiStatus);
+
+      btn.disabled = true;
+      const oldHtml = btn.innerHTML;
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Saving…`;
+
+      try{
+        const r = await fetch(WD_UPDATE_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify({ id: id, status: backendStatus, note: "" })
+        });
+
+        const j = await r.json();
+        if (!r.ok || !(j && (j.success || j.ok))){
+          const msg = (j && (j.message || j.error)) ? (j.message || j.error) : "Failed to update status.";
+          alert(msg);
+        } else {
+          // refresh list (keeps filters)
+          wdOffset = 0;
+          await loadWithdrawRequests(false);
+          // bump KPI count visually (best-effort)
+          const kpi = document.getElementById('wdreq-count');
+          if (kpi && kpi.classList) {
+            kpi.classList.remove('bump'); void kpi.offsetWidth; kpi.classList.add('bump');
+          }
+        }
+      }catch(e){
+        alert("Network error updating request.");
+      }finally{
+        btn.disabled = false;
+        btn.innerHTML = oldHtml;
+      }
+    }
+
+    if (wdBtnOpen && wdModal){
+      wdBtnOpen.addEventListener('click', async () => {
+        wdModal.show();
+        wdOffset = 0;
+        await loadWithdrawRequests(false);
+      });
+    }
+
+    if (wdBtnRefresh){
+      wdBtnRefresh.addEventListener('click', function(){
+        wdOffset = 0;
+        loadWithdrawRequests(false);
+      });
+    }
+    if (wdFilterQ){
+      let t = null;
+      wdFilterQ.addEventListener('input', () => {
+        clearTimeout(t);
+        t = setTimeout(function(){
+          wdOffset = 0;
+          loadWithdrawRequests(false);
+        }, 250);
+      });
+    }
+    if (wdTabUnpaid){
+      wdTabUnpaid.addEventListener('click', function(){ setWdTab('unpaid'); });
+    }
+    if (wdTabPaid){
+      wdTabPaid.addEventListener('click', function(){ setWdTab('paid'); });
+    }
+    if (wdBtnMore){
+      wdBtnMore.addEventListener('click', function(){
+        loadWithdrawRequests(true);
+      });
+    }
+
+    // delegate save clicks
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.wd-save');
+      if (!btn) return;
+      const row = btn.closest('tr[data-id]');
+      if (!row) return;
+      updateWithdrawRequest(row);
+    });
+  </script>
+</body>
+</html>
